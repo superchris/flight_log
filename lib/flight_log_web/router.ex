@@ -18,6 +18,13 @@ defmodule FlightLogWeb.Router do
     pipe_through :browser
 
     get "/", PageController, :home
+
+    live "/airplanes", AirplaneLive.Index, :index
+    live "/airplanes/new", AirplaneLive.Index, :new
+    live "/airplanes/:id/edit", AirplaneLive.Index, :edit
+
+    live "/airplanes/:id", AirplaneLive.Show, :show
+    live "/airplanes/:id/show/edit", AirplaneLive.Show, :edit
   end
 
   # Other scopes may use custom stacks.

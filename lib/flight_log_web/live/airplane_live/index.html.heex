@@ -1,0 +1,45 @@
+<.header>
+  Listing Airplanes
+  <:actions>
+    <.link patch={~p"/airplanes/new"}>
+      <.button>New Airplane</.button>
+    </.link>
+  </:actions>
+</.header>
+
+<.table
+  id="airplanes"
+  rows={@streams.airplanes}
+  row_click={fn {_id, airplane} -> JS.navigate(~p"/airplanes/#{airplane}") end}
+>
+  <:col :let={{_id, airplane}} label="Tail number">{airplane.tail_number}</:col>
+  <:col :let={{_id, airplane}} label="Initial hobbs reading">{airplane.initial_hobbs_reading}</:col>
+  <:col :let={{_id, airplane}} label="Model">{airplane.model}</:col>
+  <:col :let={{_id, airplane}} label="Make">{airplane.make}</:col>
+  <:col :let={{_id, airplane}} label="Year">{airplane.year}</:col>
+  <:action :let={{_id, airplane}}>
+    <div class="sr-only">
+      <.link navigate={~p"/airplanes/#{airplane}"}>Show</.link>
+    </div>
+    <.link patch={~p"/airplanes/#{airplane}/edit"}>Edit</.link>
+  </:action>
+  <:action :let={{id, airplane}}>
+    <.link
+      phx-click={JS.push("delete", value: %{id: airplane.id}) |> hide("##{id}")}
+      data-confirm="Are you sure?"
+    >
+      Delete
+    </.link>
+  </:action>
+</.table>
+
+<.modal :if={@live_action in [:new, :edit]} id="airplane-modal" show on_cancel={JS.patch(~p"/airplanes")}>
+  <.live_component
+    module={FlightLogWeb.AirplaneLive.FormComponent}
+    id={@airplane.id || :new}
+    title={@page_title}
+    action={@live_action}
+    airplane={@airplane}
+    patch={~p"/airplanes"}
+  />
+</.modal>
