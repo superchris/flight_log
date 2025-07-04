@@ -28,6 +28,13 @@ defmodule FlightLogWeb.Router do
 
     live "/airplanes/:id", AirplaneLive.Show, :show
     live "/airplanes/:id/show/edit", AirplaneLive.Show, :edit
+
+    live "/flights", FlightLive.Index, :index
+    live "/flights/new", FlightLive.Index, :new
+    live "/flights/:id/edit", FlightLive.Index, :edit
+
+    live "/flights/:id", FlightLive.Show, :show
+    live "/flights/:id/show/edit", FlightLive.Show, :edit
   end
 
   # Other scopes may use custom stacks.
