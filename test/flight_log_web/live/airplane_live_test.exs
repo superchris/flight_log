@@ -8,11 +8,6 @@ defmodule FlightLogWeb.AirplaneLiveTest do
   @update_attrs %{year: 43, make: "some updated make", tail_number: "some updated tail_number", initial_hobbs_reading: "456.7", model: "some updated model"}
   @invalid_attrs %{year: nil, make: nil, tail_number: nil, initial_hobbs_reading: nil, model: nil}
 
-  defp create_airplane(_) do
-    airplane = airplane_fixture()
-    %{airplane: airplane}
-  end
-
   describe "Index" do
     setup [:create_airplane]
 
@@ -108,6 +103,45 @@ defmodule FlightLogWeb.AirplaneLiveTest do
       html = render(show_live)
       assert html =~ "Airplane updated successfully"
       assert html =~ "some updated make"
+    end
+
+    test "displays costs section", %{conn: conn, airplane: airplane} do
+      {:ok, _show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
+
+      assert html =~ "Costs"
+      assert html =~ "Add Cost"
+      assert html =~ "No costs have been added yet"
+    end
+
+    test "displays existing costs", %{conn: conn} do
+      import FlightLog.CostsFixtures
+      airplane = airplane_fixture()
+      cost = cost_fixture(airplane: airplane)
+
+      {:ok, _show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
+
+      assert html =~ "Costs"
+      assert html =~ "Monthly"
+      assert html =~ "$#{cost.amount}"
+      assert html =~ cost.description
+    end
+
+    test "can delete cost", %{conn: conn} do
+      import FlightLog.CostsFixtures
+      airplane = airplane_fixture()
+      cost = cost_fixture(airplane: airplane)
+
+      {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane}")
+
+      assert render(show_live) =~ cost.description
+
+      # Use a more specific selector for the delete button
+      assert show_live
+             |> element("a[data-confirm]", "Delete")
+             |> render_click()
+
+      refute render(show_live) =~ cost.description
+      assert render(show_live) =~ "No costs have been added yet"
     end
   end
 end

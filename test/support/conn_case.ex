@@ -61,4 +61,16 @@ defmodule FlightLogWeb.ConnCase do
     |> Phoenix.ConnTest.init_test_session(%{})
     |> Plug.Conn.put_session(:pilot_token, token)
   end
+
+  @doc """
+  Setup helper that creates an airplane.
+
+      setup :create_airplane
+
+  It stores an airplane in the test context.
+  """
+  def create_airplane(_) do
+    airplane = FlightLog.AirplanesFixtures.airplane_fixture()
+    %{airplane: airplane}
+  end
 end

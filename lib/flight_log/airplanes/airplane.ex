@@ -10,6 +10,7 @@ defmodule FlightLog.Airplanes.Airplane do
     field :model, :string
 
     has_many :flights, FlightLog.Flights.Flight
+    has_many :costs, FlightLog.Costs.Cost
 
     timestamps(type: :utc_datetime)
   end

@@ -28,6 +28,8 @@ defmodule FlightLogWeb.Router do
 
     live "/airplanes/:id", AirplaneLive.Show, :show
     live "/airplanes/:id/show/edit", AirplaneLive.Show, :edit
+    live "/airplanes/:id/costs/new", AirplaneLive.Show, :new_cost
+    live "/airplanes/:id/costs/:cost_id/edit", AirplaneLive.Show, :edit_cost
 
     live "/flights", FlightLive.Index, :index
     live "/flights/new", FlightLive.Index, :new

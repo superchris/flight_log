@@ -138,8 +138,5 @@ defmodule FlightLogWeb.FlightLive.LogFlightTest do
     end
   end
 
-  defp create_airplane(_) do
-    airplane = airplane_fixture()
-    %{airplane: airplane}
-  end
+
 end
