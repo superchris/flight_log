@@ -8,6 +8,8 @@ defmodule FlightLog.Accounts.Pilot do
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime
+    field :first_name, :string
+    field :last_name, :string
 
     has_many :flights, FlightLog.Flights.Flight
 
@@ -39,7 +41,10 @@ defmodule FlightLog.Accounts.Pilot do
   """
   def registration_changeset(pilot, attrs, opts \\ []) do
     pilot
-    |> cast(attrs, [:email, :password])
+    |> cast(attrs, [:email, :password, :first_name, :last_name])
+    |> validate_required([:first_name, :last_name])
+    |> validate_length(:first_name, min: 1, max: 100)
+    |> validate_length(:last_name, min: 1, max: 100)
     |> validate_email(opts)
     |> validate_password(opts)
   end

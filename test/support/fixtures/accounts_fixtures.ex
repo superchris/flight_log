@@ -9,6 +9,8 @@ defmodule FlightLog.AccountsFixtures do
 
   def valid_pilot_attributes(attrs \\ %{}) do
     Enum.into(attrs, %{
+      first_name: "John",
+      last_name: "Doe",
       email: unique_pilot_email(),
       password: valid_pilot_password()
     })

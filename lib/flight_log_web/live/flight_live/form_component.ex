@@ -50,7 +50,15 @@ defmodule FlightLogWeb.FlightLive.FormComponent do
     pilots = Accounts.list_pilots()
     airplanes = Airplanes.list_airplanes()
 
-    pilot_options = Enum.map(pilots, &{&1.email, &1.id})
+    pilot_options = Enum.map(pilots, fn pilot ->
+      display_name = case {pilot.first_name, pilot.last_name} do
+        {nil, nil} -> pilot.email
+        {first, nil} -> "#{first} (#{pilot.email})"
+        {nil, last} -> "#{last} (#{pilot.email})"
+        {first, last} -> "#{first} #{last} (#{pilot.email})"
+      end
+      {display_name, pilot.id}
+    end)
     airplane_options = Enum.map(airplanes, &{"#{&1.tail_number} (#{&1.make} #{&1.model})", &1.id})
 
     {:ok,

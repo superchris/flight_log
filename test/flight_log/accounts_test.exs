@@ -54,7 +54,9 @@ defmodule FlightLog.AccountsTest do
 
       assert %{
                password: ["can't be blank"],
-               email: ["can't be blank"]
+               email: ["can't be blank"],
+               first_name: ["can't be blank"],
+               last_name: ["can't be blank"]
              } = errors_on(changeset)
     end
 
@@ -97,7 +99,7 @@ defmodule FlightLog.AccountsTest do
   describe "change_pilot_registration/2" do
     test "returns a changeset" do
       assert %Ecto.Changeset{} = changeset = Accounts.change_pilot_registration(%Pilot{})
-      assert changeset.required == [:password, :email]
+      assert changeset.required == [:password, :email, :first_name, :last_name]
     end
 
     test "allows fields to be set" do
