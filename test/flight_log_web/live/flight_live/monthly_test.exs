@@ -158,5 +158,69 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
       # Second flight should show 1.3 hours (51.3 - 50.0)
       assert html =~ "Flight Hours: 1.3 hours"
     end
+
+    test "displays total flight hours for multiple flights", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N66666", initial_hobbs_reading: Decimal.new("75.0")})
+
+      # Create multiple flights with different flight hours
+      _flight1 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-10],
+        hobbs_reading: Decimal.new("78.5"),  # 3.5 hours
+        inserted_at: ~U[2024-01-10 10:00:00Z]
+      })
+
+      _flight2 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("80.2"),  # 1.7 hours
+        inserted_at: ~U[2024-01-15 10:00:00Z]
+      })
+
+      _flight3 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-20],
+        hobbs_reading: Decimal.new("82.0"),  # 1.8 hours
+        inserted_at: ~U[2024-01-20 10:00:00Z]
+      })
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # Should show total flight hours (3.5 + 1.7 + 1.8 = 7.0)
+      assert html =~ "Total Hours:"
+      assert html =~ "7.0 hours"
+      refute html =~ "Total Hobbs Time:"
+    end
+
+    test "displays correct total flight hours for single flight", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N55555", initial_hobbs_reading: Decimal.new("25.0")})
+
+      _flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("27.3")  # 2.3 hours
+      })
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      assert html =~ "Total Hours:"
+      assert html =~ "2.3 hours"
+    end
+
+    test "shows zero total hours when no flights exist", %{conn: conn} do
+      airplane = airplane_fixture(%{tail_number: "N44444"})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      assert html =~ "No flights"
+      refute html =~ "Total Hours:"  # Should not show total when no flights
+    end
   end
 end

@@ -108,9 +108,9 @@ defmodule FlightLogWeb.FlightLive.Monthly do
     Calendar.strftime(date, "%m/%d/%Y")
   end
 
-  defp calculate_total_hobbs(flights) do
+  defp calculate_total_flight_hours(flights) do
     flights
-    |> Enum.map(& &1.hobbs_reading)
+    |> Enum.map(& &1.flight_hours)
     |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
     |> Decimal.round(1)
   end
