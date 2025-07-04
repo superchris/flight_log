@@ -47,6 +47,7 @@ defmodule FlightLogWeb.FlightLive.LogFlight do
 
         <.input field={@form[:hobbs_reading]} type="number" label="Hobbs reading" step="any" required />
         <.input field={@form[:flight_date]} type="date" label="Flight date" required />
+        <.input field={@form[:notes]} type="textarea" label="Notes" placeholder="Optional flight notes" />
 
         <:actions>
           <.button phx-disable-with="Saving...">Save Flight</.button>

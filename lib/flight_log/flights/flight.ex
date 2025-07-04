@@ -5,6 +5,7 @@ defmodule FlightLog.Flights.Flight do
   schema "flights" do
     field :hobbs_reading, :decimal
     field :flight_date, :date
+    field :notes, :string
 
     belongs_to :pilot, FlightLog.Accounts.Pilot
     belongs_to :airplane, FlightLog.Airplanes.Airplane
@@ -15,7 +16,7 @@ defmodule FlightLog.Flights.Flight do
   @doc false
   def changeset(flight, attrs) do
     flight
-    |> cast(attrs, [:hobbs_reading, :flight_date, :pilot_id, :airplane_id])
+    |> cast(attrs, [:hobbs_reading, :flight_date, :notes, :pilot_id, :airplane_id])
     |> validate_required([:hobbs_reading, :flight_date, :pilot_id, :airplane_id])
   end
 end
