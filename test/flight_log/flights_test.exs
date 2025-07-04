@@ -65,7 +65,7 @@ defmodule FlightLog.FlightsTest do
     end
   end
 
-  describe "add_flight_hours/1" do
+      describe "add_flight_hours/1" do
     import FlightLog.FlightsFixtures
     import FlightLog.AccountsFixtures
     import FlightLog.AirplanesFixtures
@@ -74,25 +74,28 @@ defmodule FlightLog.FlightsTest do
       assert Flights.add_flight_hours([]) == []
     end
 
-    test "adds flight hours to single flight" do
+    test "calculates flight hours from initial hobbs reading for single flight" do
       pilot = pilot_fixture()
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("50.0")})
 
       flight = flight_fixture(%{
         pilot_id: pilot.id,
         airplane_id: airplane.id,
-        hobbs_reading: Decimal.new("10.5"),
+        hobbs_reading: Decimal.new("52.5"),
         flight_date: ~D[2024-01-15]
       })
 
-      [result] = Flights.add_flight_hours([flight])
-      assert result.flight_hours == Decimal.new("10.5")
+      # Preload airplane data
+      flight_with_airplane = FlightLog.Repo.preload(flight, :airplane)
+
+      [result] = Flights.add_flight_hours([flight_with_airplane])
+      assert result.flight_hours == Decimal.new("2.5")  # 52.5 - 50.0
       assert result.id == flight.id
     end
 
-    test "calculates flight hours correctly for multiple flights" do
+        test "calculates flight hours correctly for multiple flights" do
       pilot = pilot_fixture()
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("95.0")})
 
       # Create flights in reverse chronological order (newest first)
       flight3 = flight_fixture(%{
@@ -119,8 +122,11 @@ defmodule FlightLog.FlightsTest do
         inserted_at: ~U[2024-01-10 10:00:00Z]
       })
 
+      # Preload airplane data
+      flights_with_airplane = FlightLog.Repo.preload([flight3, flight2, flight1], :airplane)
+
       # Pass flights in newest-first order (original display order)
-      results = Flights.add_flight_hours([flight3, flight2, flight1])
+      results = Flights.add_flight_hours(flights_with_airplane)
 
       # Results should maintain original order
       assert length(results) == 3
@@ -133,14 +139,14 @@ defmodule FlightLog.FlightsTest do
       flight2_result = Enum.find(results, &(&1.id == flight2.id))
       flight3_result = Enum.find(results, &(&1.id == flight3.id))
 
-      assert flight1_result.flight_hours == Decimal.new("100.0")  # First flight
+      assert flight1_result.flight_hours == Decimal.new("5.0")    # 100.0 - 95.0 (initial)
       assert flight2_result.flight_hours == Decimal.new("2.5")    # 102.5 - 100.0
       assert flight3_result.flight_hours == Decimal.new("1.7")    # 104.2 - 102.5
     end
 
-    test "handles flights with same date correctly" do
+        test "handles flights with same date correctly" do
       pilot = pilot_fixture()
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("48.0")})
 
       # Two flights on same date, different times
       flight2 = flight_fixture(%{
@@ -159,18 +165,21 @@ defmodule FlightLog.FlightsTest do
         inserted_at: ~U[2024-01-15 09:00:00Z]  # Earlier time
       })
 
-      results = Flights.add_flight_hours([flight2, flight1])
+      # Preload airplane data
+      flights_with_airplane = FlightLog.Repo.preload([flight2, flight1], :airplane)
+
+      results = Flights.add_flight_hours(flights_with_airplane)
 
       flight1_result = Enum.find(results, &(&1.id == flight1.id))
       flight2_result = Enum.find(results, &(&1.id == flight2.id))
 
-      assert flight1_result.flight_hours == Decimal.new("50.0")  # First chronologically
+      assert flight1_result.flight_hours == Decimal.new("2.0")   # 50.0 - 48.0 (initial)
       assert flight2_result.flight_hours == Decimal.new("1.3")   # 51.3 - 50.0
     end
 
-    test "preserves original flight order in results" do
+        test "preserves original flight order in results" do
       pilot = pilot_fixture()
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("80.0")})
 
       flight_a = flight_fixture(%{
         pilot_id: pilot.id,
@@ -186,8 +195,11 @@ defmodule FlightLog.FlightsTest do
         hobbs_reading: Decimal.new("100.0")
       })
 
+      # Preload airplane data
+      flights_with_airplane = FlightLog.Repo.preload([flight_a, flight_b], :airplane)
+
       # Pass in specific order
-      results = Flights.add_flight_hours([flight_a, flight_b])
+      results = Flights.add_flight_hours(flights_with_airplane)
 
       # Should maintain same order
       assert Enum.at(results, 0).id == flight_a.id
@@ -195,6 +207,27 @@ defmodule FlightLog.FlightsTest do
 
       # Check that flight_hours field was added to all
       assert Enum.all?(results, &Map.has_key?(&1, :flight_hours))
+    end
+
+    test "correctly calculates first flight hours from initial hobbs reading" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("1000.0")})
+
+      flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("1003.7")
+      })
+
+      # Preload airplane data
+      flight_with_airplane = FlightLog.Repo.preload(flight, :airplane)
+
+      [result] = Flights.add_flight_hours([flight_with_airplane])
+
+      # First flight hours should be hobbs_reading - initial_hobbs_reading
+      assert result.flight_hours == Decimal.new("3.7")  # 1003.7 - 1000.0
+      assert result.id == flight.id
     end
   end
 end

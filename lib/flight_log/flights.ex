@@ -130,11 +130,14 @@ defmodule FlightLog.Flights do
   Adds flight hours to each flight in the list.
 
   Flight hours are calculated as:
-  - First flight (chronologically): hobbs_reading
+  - First flight (chronologically): hobbs_reading - airplane.initial_hobbs_reading
   - Subsequent flights: current_hobbs_reading - previous_hobbs_reading
 
   Returns flights in their original order with :flight_hours field added.
+  Expects flights to have airplane preloaded.
   """
+  def add_flight_hours([]), do: []
+
   def add_flight_hours(flights) when is_list(flights) do
     flights
     |> sort_chronologically()
@@ -146,13 +149,19 @@ defmodule FlightLog.Flights do
     Enum.sort_by(flights, &{&1.flight_date, &1.inserted_at}, :asc)
   end
 
-  defp calculate_flight_hours(sorted_flights) do
-    sorted_flights
-    |> Enum.scan(&add_hours_to_flight(&1, &2))
-    |> case do
-      [] -> []
-      [first | rest] -> [Map.put(first, :flight_hours, first.hobbs_reading) | rest]
-    end
+  defp calculate_flight_hours([]), do: []
+
+  defp calculate_flight_hours([first | rest]) do
+    # Calculate first flight hours using airplane's initial hobbs reading
+    initial_hobbs_reading = first.airplane.initial_hobbs_reading
+
+    first_with_hours =
+      Map.put(first, :flight_hours, Decimal.sub(first.hobbs_reading, initial_hobbs_reading))
+
+    # Calculate remaining flights
+    remaining_with_hours = Enum.scan(rest, first, &add_hours_to_flight(&1, &2))
+
+    [first_with_hours | remaining_with_hours]
   end
 
   defp add_hours_to_flight(current_flight, previous_flight) do
