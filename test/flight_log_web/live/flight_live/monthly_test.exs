@@ -72,5 +72,91 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
       assert {:error, {:redirect, %{to: "/airplanes"}}} =
         live(conn, ~p"/flights/monthly/INVALID")
     end
+
+    test "displays flight hours for single flight", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N99999"})
+
+      _flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("10.5")
+      })
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      assert html =~ "Flight Hours: 10.5 hours"
+    end
+
+    test "calculates flight hours correctly for multiple flights", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N88888"})
+
+      # First flight (chronologically)
+      _flight1 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-10],
+        hobbs_reading: Decimal.new("100.0"),
+        inserted_at: ~U[2024-01-10 10:00:00Z]
+      })
+
+      # Second flight
+      _flight2 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("102.5"),
+        inserted_at: ~U[2024-01-15 10:00:00Z]
+      })
+
+      # Third flight
+      _flight3 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-20],
+        hobbs_reading: Decimal.new("104.2"),
+        inserted_at: ~U[2024-01-20 10:00:00Z]
+      })
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # First flight should show 100.0 hours (initial hobbs reading)
+      assert html =~ "Flight Hours: 100.0 hours"
+      # Second flight should show 2.5 hours (102.5 - 100.0)
+      assert html =~ "Flight Hours: 2.5 hours"
+      # Third flight should show 1.7 hours (104.2 - 102.5)
+      assert html =~ "Flight Hours: 1.7 hours"
+    end
+
+    test "handles flights with same date correctly", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N77777"})
+
+      # Two flights on same date, different times
+      _flight1 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("50.0"),
+        inserted_at: ~U[2024-01-15 09:00:00Z]  # Earlier time
+      })
+
+      _flight2 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("51.3"),
+        inserted_at: ~U[2024-01-15 14:00:00Z]  # Later time
+      })
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # First flight (chronologically) should show 50.0 hours
+      assert html =~ "Flight Hours: 50.0 hours"
+      # Second flight should show 1.3 hours (51.3 - 50.0)
+      assert html =~ "Flight Hours: 1.3 hours"
+    end
   end
 end

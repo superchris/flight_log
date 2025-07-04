@@ -17,6 +17,7 @@ defmodule FlightLogWeb.FlightLive.Monthly do
           airplane.id,
           current_date
         )
+        |> Flights.add_flight_hours()
 
         {:ok,
          socket
@@ -43,6 +44,7 @@ defmodule FlightLogWeb.FlightLive.Monthly do
       socket.assigns.airplane.id,
       current_date
     )
+    |> Flights.add_flight_hours()
 
     {:noreply,
      socket
@@ -112,4 +114,6 @@ defmodule FlightLogWeb.FlightLive.Monthly do
     |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
     |> Decimal.round(1)
   end
+
+
 end

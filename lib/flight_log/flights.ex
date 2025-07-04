@@ -125,4 +125,48 @@ defmodule FlightLog.Flights do
   def change_flight(%Flight{} = flight, attrs \\ %{}) do
     Flight.changeset(flight, attrs)
   end
+
+  @doc """
+  Adds flight hours to each flight in the list.
+
+  Flight hours are calculated as:
+  - First flight (chronologically): hobbs_reading
+  - Subsequent flights: current_hobbs_reading - previous_hobbs_reading
+
+  Returns flights in their original order with :flight_hours field added.
+  """
+  def add_flight_hours(flights) when is_list(flights) do
+    flights
+    |> sort_chronologically()
+    |> calculate_flight_hours()
+    |> restore_original_order(flights)
+  end
+
+  defp sort_chronologically(flights) do
+    Enum.sort_by(flights, &{&1.flight_date, &1.inserted_at}, :asc)
+  end
+
+  defp calculate_flight_hours(sorted_flights) do
+    sorted_flights
+    |> Enum.scan(&add_hours_to_flight(&1, &2))
+    |> case do
+      [] -> []
+      [first | rest] -> [Map.put(first, :flight_hours, first.hobbs_reading) | rest]
+    end
+  end
+
+  defp add_hours_to_flight(current_flight, previous_flight) do
+    flight_hours = Decimal.sub(current_flight.hobbs_reading, previous_flight.hobbs_reading)
+    Map.put(current_flight, :flight_hours, flight_hours)
+  end
+
+  defp restore_original_order(flights_with_hours, original_flights) do
+    # Create a map for quick lookup
+    hours_map = Map.new(flights_with_hours, &{&1.id, &1.flight_hours})
+
+    # Add flight_hours to original flights maintaining their order
+    Enum.map(original_flights, fn flight ->
+      Map.put(flight, :flight_hours, Map.get(hours_map, flight.id))
+    end)
+  end
 end

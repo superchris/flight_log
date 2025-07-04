@@ -58,6 +58,9 @@
                     <p class="text-sm text-gray-500">
                       Hobbs: {flight.hobbs_reading} hours
                     </p>
+                    <p class="text-sm text-blue-600 font-medium">
+                      Flight Hours: {Decimal.round(flight.flight_hours, 1)} hours
+                    </p>
                     <%= if flight.notes && flight.notes != "" do %>
                       <p class="text-sm text-gray-600 mt-1">
                         {flight.notes}

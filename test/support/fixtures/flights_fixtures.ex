@@ -14,6 +14,9 @@ defmodule FlightLog.FlightsFixtures do
     pilot = pilot_fixture()
     airplane = airplane_fixture()
 
+    # Extract inserted_at if provided, as it needs special handling
+    {inserted_at, attrs} = Map.pop(attrs, :inserted_at)
+
     {:ok, flight} =
       attrs
       |> Enum.into(%{
@@ -24,6 +27,16 @@ defmodule FlightLog.FlightsFixtures do
       })
       |> FlightLog.Flights.create_flight()
 
-    flight
+    # If inserted_at was provided, update the record with it
+    case inserted_at do
+      nil -> flight
+      datetime ->
+        FlightLog.Repo.update_all(
+          FlightLog.Flights.Flight,
+          [set: [inserted_at: datetime]],
+          [where: [id: flight.id]]
+        )
+        %{flight | inserted_at: datetime}
+    end
   end
 end
