@@ -2,6 +2,12 @@
   Airplane {@airplane.id}
   <:subtitle>This is a airplane record from your database.</:subtitle>
   <:actions>
+    <.link navigate={~p"/flights/monthly/#{@airplane.id}"}>
+      <.button>View Monthly Flights</.button>
+    </.link>
+    <.link navigate={~p"/flights/#{@airplane.tail_number}/new"}>
+      <.button>Log Flight</.button>
+    </.link>
     <.link patch={~p"/airplanes/#{@airplane}/show/edit"} phx-click={JS.push_focus()}>
       <.button>Edit airplane</.button>
     </.link>

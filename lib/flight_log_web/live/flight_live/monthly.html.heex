@@ -1,0 +1,99 @@
+<div class="mx-auto max-w-4xl">
+  <.header>
+    Flights for {@airplane.tail_number}
+    <:subtitle>
+      {@airplane.make} {@airplane.model} - {format_month(@current_date)}
+    </:subtitle>
+    <:actions>
+      <.link navigate={~p"/flights/#{@airplane.tail_number}/new"}>
+        <.button>Log New Flight</.button>
+      </.link>
+    </:actions>
+  </.header>
+
+  <div class="flex items-center justify-between mb-6">
+    <.button phx-click="prev_month" class="flex items-center gap-2">
+      <.icon name="hero-chevron-left" class="h-4 w-4" />
+      Previous Month
+    </.button>
+    
+    <h2 class="text-lg font-semibold text-gray-900">
+      {format_month(@current_date)}
+    </h2>
+    
+    <.button phx-click="next_month" class="flex items-center gap-2">
+      Next Month
+      <.icon name="hero-chevron-right" class="h-4 w-4" />
+    </.button>
+  </div>
+
+  <%= if Enum.empty?(@flights) do %>
+    <div class="text-center py-8">
+      <.icon name="hero-airplane" class="mx-auto h-12 w-12 text-gray-400" />
+      <h3 class="mt-2 text-sm font-semibold text-gray-900">No flights</h3>
+      <p class="mt-1 text-sm text-gray-500">
+        No flights found for {format_month(@current_date)}.
+      </p>
+      <div class="mt-6">
+        <.link navigate={~p"/flights/#{@airplane.tail_number}/new"}>
+          <.button>Log Your First Flight</.button>
+        </.link>
+      </div>
+    </div>
+  <% else %>
+    <div class="bg-white shadow overflow-hidden sm:rounded-md">
+      <ul class="divide-y divide-gray-200">
+        <%= for flight <- @flights do %>
+          <li class="px-6 py-4">
+            <div class="flex items-center justify-between">
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center">
+                  <div class="flex-shrink-0">
+                    <.icon name="hero-calendar" class="h-5 w-5 text-gray-400" />
+                  </div>
+                  <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-900">
+                      {format_date(flight.flight_date)}
+                    </p>
+                    <p class="text-sm text-gray-500">
+                      Hobbs: {flight.hobbs_reading} hours
+                    </p>
+                    <%= if flight.notes && flight.notes != "" do %>
+                      <p class="text-sm text-gray-600 mt-1">
+                        {flight.notes}
+                      </p>
+                    <% end %>
+                  </div>
+                </div>
+              </div>
+              <div class="flex-shrink-0">
+                <.link navigate={~p"/flights/#{flight.id}"} class="text-indigo-600 hover:text-indigo-500 text-sm font-medium">
+                  View Details
+                </.link>
+              </div>
+            </div>
+          </li>
+        <% end %>
+      </ul>
+    </div>
+
+    <div class="mt-6 bg-gray-50 px-6 py-4 rounded-lg">
+      <div class="flex justify-between items-center">
+        <span class="text-sm font-medium text-gray-900">Total Hobbs Time:</span>
+        <span class="text-lg font-semibold text-gray-900">
+          {calculate_total_hobbs(@flights)} hours
+        </span>
+      </div>
+      <div class="flex justify-between items-center mt-2">
+        <span class="text-sm font-medium text-gray-900">Total Flights:</span>
+        <span class="text-lg font-semibold text-gray-900">
+          {length(@flights)} flights
+        </span>
+      </div>
+    </div>
+  <% end %>
+
+  <div class="mt-8">
+    <.back navigate={~p"/airplanes/#{@airplane.id}"}>Back to airplane</.back>
+  </div>
+</div> 

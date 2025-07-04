@@ -83,6 +83,7 @@ defmodule FlightLogWeb.Router do
       live "/pilots/settings", PilotSettingsLive, :edit
       live "/pilots/settings/confirm_email/:token", PilotSettingsLive, :confirm_email
       live "/flights/:tail_number/new", FlightLive.LogFlight, :new
+      live "/flights/monthly/:airplane_id", FlightLive.Monthly, :index
     end
   end
 
