@@ -1,6 +1,8 @@
 defmodule FlightLogWeb.Router do
   use FlightLogWeb, :router
 
+  import FlightLogWeb.PilotAuth
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,6 +10,7 @@ defmodule FlightLogWeb.Router do
     plug :put_root_layout, html: {FlightLogWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :fetch_current_pilot
   end
 
   pipeline :api do
@@ -46,6 +49,44 @@ defmodule FlightLogWeb.Router do
 
       live_dashboard "/dashboard", metrics: FlightLogWeb.Telemetry
       forward "/mailbox", Plug.Swoosh.MailboxPreview
+    end
+  end
+
+  ## Authentication routes
+
+  scope "/", FlightLogWeb do
+    pipe_through [:browser, :redirect_if_pilot_is_authenticated]
+
+    live_session :redirect_if_pilot_is_authenticated,
+      on_mount: [{FlightLogWeb.PilotAuth, :redirect_if_pilot_is_authenticated}] do
+      live "/pilots/register", PilotRegistrationLive, :new
+      live "/pilots/log_in", PilotLoginLive, :new
+      live "/pilots/reset_password", PilotForgotPasswordLive, :new
+      live "/pilots/reset_password/:token", PilotResetPasswordLive, :edit
+    end
+
+    post "/pilots/log_in", PilotSessionController, :create
+  end
+
+  scope "/", FlightLogWeb do
+    pipe_through [:browser, :require_authenticated_pilot]
+
+    live_session :require_authenticated_pilot,
+      on_mount: [{FlightLogWeb.PilotAuth, :ensure_authenticated}] do
+      live "/pilots/settings", PilotSettingsLive, :edit
+      live "/pilots/settings/confirm_email/:token", PilotSettingsLive, :confirm_email
+    end
+  end
+
+  scope "/", FlightLogWeb do
+    pipe_through [:browser]
+
+    delete "/pilots/log_out", PilotSessionController, :delete
+
+    live_session :current_pilot,
+      on_mount: [{FlightLogWeb.PilotAuth, :mount_current_pilot}] do
+      live "/pilots/confirm/:token", PilotConfirmationLive, :edit
+      live "/pilots/confirm", PilotConfirmationInstructionsLive, :new
     end
   end
 end

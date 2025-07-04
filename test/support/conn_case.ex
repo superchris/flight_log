@@ -35,4 +35,30 @@ defmodule FlightLogWeb.ConnCase do
     FlightLog.DataCase.setup_sandbox(tags)
     {:ok, conn: Phoenix.ConnTest.build_conn()}
   end
+
+  @doc """
+  Setup helper that registers and logs in pilots.
+
+      setup :register_and_log_in_pilot
+
+  It stores an updated connection and a registered pilot in the
+  test context.
+  """
+  def register_and_log_in_pilot(%{conn: conn}) do
+    pilot = FlightLog.AccountsFixtures.pilot_fixture()
+    %{conn: log_in_pilot(conn, pilot), pilot: pilot}
+  end
+
+  @doc """
+  Logs the given `pilot` into the `conn`.
+
+  It returns an updated `conn`.
+  """
+  def log_in_pilot(conn, pilot) do
+    token = FlightLog.Accounts.generate_pilot_session_token(pilot)
+
+    conn
+    |> Phoenix.ConnTest.init_test_session(%{})
+    |> Plug.Conn.put_session(:pilot_token, token)
+  end
 end
