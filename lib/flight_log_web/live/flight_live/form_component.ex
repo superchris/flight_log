@@ -2,6 +2,8 @@ defmodule FlightLogWeb.FlightLive.FormComponent do
   use FlightLogWeb, :live_component
 
   alias FlightLog.Flights
+  alias FlightLog.Accounts
+  alias FlightLog.Airplanes
 
   @impl true
   def render(assigns) do
@@ -19,6 +21,20 @@ defmodule FlightLogWeb.FlightLive.FormComponent do
         phx-change="validate"
         phx-submit="save"
       >
+        <.input
+          field={@form[:pilot_id]}
+          type="select"
+          label="Pilot"
+          options={@pilot_options}
+          prompt="Select a pilot"
+        />
+        <.input
+          field={@form[:airplane_id]}
+          type="select"
+          label="Airplane"
+          options={@airplane_options}
+          prompt="Select an airplane"
+        />
         <.input field={@form[:hobbs_reading]} type="number" label="Hobbs reading" step="any" />
         <.input field={@form[:flight_date]} type="date" label="Flight date" />
         <:actions>
@@ -31,9 +47,17 @@ defmodule FlightLogWeb.FlightLive.FormComponent do
 
   @impl true
   def update(%{flight: flight} = assigns, socket) do
+    pilots = Accounts.list_pilots()
+    airplanes = Airplanes.list_airplanes()
+
+    pilot_options = Enum.map(pilots, &{&1.email, &1.id})
+    airplane_options = Enum.map(airplanes, &{"#{&1.tail_number} (#{&1.make} #{&1.model})", &1.id})
+
     {:ok,
      socket
      |> assign(assigns)
+     |> assign(:pilot_options, pilot_options)
+     |> assign(:airplane_options, airplane_options)
      |> assign_new(:form, fn ->
        to_form(Flights.change_flight(flight))
      end)}

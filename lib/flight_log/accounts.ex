@@ -11,6 +11,19 @@ defmodule FlightLog.Accounts do
   ## Database getters
 
   @doc """
+  Returns the list of pilots.
+
+  ## Examples
+
+      iex> list_pilots()
+      [%Pilot{}, ...]
+
+  """
+  def list_pilots do
+    Repo.all(Pilot)
+  end
+
+  @doc """
   Gets a pilot by email.
 
   ## Examples

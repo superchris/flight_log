@@ -5,8 +5,9 @@ defmodule FlightLog.Flights.Flight do
   schema "flights" do
     field :hobbs_reading, :decimal
     field :flight_date, :date
-    field :pilot_id, :id
-    field :airplane_id, :id
+
+    belongs_to :pilot, FlightLog.Accounts.Pilot
+    belongs_to :airplane, FlightLog.Airplanes.Airplane
 
     timestamps(type: :utc_datetime)
   end
@@ -14,7 +15,7 @@ defmodule FlightLog.Flights.Flight do
   @doc false
   def changeset(flight, attrs) do
     flight
-    |> cast(attrs, [:hobbs_reading, :flight_date])
-    |> validate_required([:hobbs_reading, :flight_date])
+    |> cast(attrs, [:hobbs_reading, :flight_date, :pilot_id, :airplane_id])
+    |> validate_required([:hobbs_reading, :flight_date, :pilot_id, :airplane_id])
   end
 end

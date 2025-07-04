@@ -9,6 +9,8 @@ defmodule FlightLog.Airplanes.Airplane do
     field :initial_hobbs_reading, :decimal
     field :model, :string
 
+    has_many :flights, FlightLog.Flights.Flight
+
     timestamps(type: :utc_datetime)
   end
 

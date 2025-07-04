@@ -9,6 +9,8 @@ defmodule FlightLog.Accounts.Pilot do
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime
 
+    has_many :flights, FlightLog.Flights.Flight
+
     timestamps(type: :utc_datetime)
   end
 

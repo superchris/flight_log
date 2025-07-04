@@ -7,8 +7,10 @@ defmodule FlightLog.FlightsTest do
     alias FlightLog.Flights.Flight
 
     import FlightLog.FlightsFixtures
+    import FlightLog.AccountsFixtures
+    import FlightLog.AirplanesFixtures
 
-    @invalid_attrs %{hobbs_reading: nil, flight_date: nil}
+    @invalid_attrs %{hobbs_reading: nil, flight_date: nil, pilot_id: nil, airplane_id: nil}
 
     test "list_flights/0 returns all flights" do
       flight = flight_fixture()
@@ -21,11 +23,15 @@ defmodule FlightLog.FlightsTest do
     end
 
     test "create_flight/1 with valid data creates a flight" do
-      valid_attrs = %{hobbs_reading: "120.5", flight_date: ~D[2025-07-03]}
+      pilot = pilot_fixture()
+      airplane = airplane_fixture()
+      valid_attrs = %{hobbs_reading: "120.5", flight_date: ~D[2025-07-03], pilot_id: pilot.id, airplane_id: airplane.id}
 
       assert {:ok, %Flight{} = flight} = Flights.create_flight(valid_attrs)
       assert flight.hobbs_reading == Decimal.new("120.5")
       assert flight.flight_date == ~D[2025-07-03]
+      assert flight.pilot_id == pilot.id
+      assert flight.airplane_id == airplane.id
     end
 
     test "create_flight/1 with invalid data returns error changeset" do
