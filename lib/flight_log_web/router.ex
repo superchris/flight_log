@@ -82,6 +82,7 @@ defmodule FlightLogWeb.Router do
       on_mount: [{FlightLogWeb.PilotAuth, :ensure_authenticated}] do
       live "/pilots/settings", PilotSettingsLive, :edit
       live "/pilots/settings/confirm_email/:token", PilotSettingsLive, :confirm_email
+      live "/flights/:tail_number/new", FlightByTailNumberLive, :new
     end
   end
 

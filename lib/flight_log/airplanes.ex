@@ -38,6 +38,27 @@ defmodule FlightLog.Airplanes do
   def get_airplane!(id), do: Repo.get!(Airplane, id)
 
   @doc """
+  Gets a single airplane by tail number.
+
+  Returns `{:ok, airplane}` if found, `{:error, :not_found}` if not found.
+
+  ## Examples
+
+      iex> get_airplane_by_tail_number("N12345")
+      {:ok, %Airplane{}}
+
+      iex> get_airplane_by_tail_number("INVALID")
+      {:error, :not_found}
+
+  """
+  def get_airplane_by_tail_number(tail_number) when is_binary(tail_number) do
+    case Repo.get_by(Airplane, tail_number: tail_number) do
+      nil -> {:error, :not_found}
+      airplane -> {:ok, airplane}
+    end
+  end
+
+  @doc """
   Creates a airplane.
 
   ## Examples

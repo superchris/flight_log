@@ -20,6 +20,27 @@ defmodule FlightLog.AirplanesTest do
       assert Airplanes.get_airplane!(airplane.id) == airplane
     end
 
+    test "get_airplane_by_tail_number/1 returns {:ok, airplane} when airplane exists" do
+      airplane = airplane_fixture()
+      assert {:ok, returned_airplane} = Airplanes.get_airplane_by_tail_number(airplane.tail_number)
+      assert returned_airplane.id == airplane.id
+      assert returned_airplane.tail_number == airplane.tail_number
+    end
+
+    test "get_airplane_by_tail_number/1 returns {:error, :not_found} when airplane does not exist" do
+      assert {:error, :not_found} = Airplanes.get_airplane_by_tail_number("NONEXISTENT")
+    end
+
+    test "get_airplane_by_tail_number/1 returns {:error, :not_found} for empty string" do
+      assert {:error, :not_found} = Airplanes.get_airplane_by_tail_number("")
+    end
+
+    test "get_airplane_by_tail_number/1 is case sensitive" do
+      _airplane = airplane_fixture(%{tail_number: "N12345"})
+      assert {:ok, _} = Airplanes.get_airplane_by_tail_number("N12345")
+      assert {:error, :not_found} = Airplanes.get_airplane_by_tail_number("n12345")
+    end
+
     test "create_airplane/1 with valid data creates a airplane" do
       valid_attrs = %{year: 42, make: "some make", tail_number: "some tail_number", initial_hobbs_reading: "120.5", model: "some model"}
 
