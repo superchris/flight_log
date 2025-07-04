@@ -1,4 +1,4 @@
-defmodule FlightLogWeb.FlightByTailNumberLiveTest do
+defmodule FlightLogWeb.FlightLive.LogFlightTest do
   use FlightLogWeb.ConnCase
 
   import Phoenix.LiveViewTest

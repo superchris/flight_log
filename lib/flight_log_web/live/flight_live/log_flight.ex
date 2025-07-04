@@ -1,4 +1,4 @@
-defmodule FlightLogWeb.FlightByTailNumberLive do
+defmodule FlightLogWeb.FlightLive.LogFlight do
   use FlightLogWeb, :live_view
 
   alias FlightLog.Flights
