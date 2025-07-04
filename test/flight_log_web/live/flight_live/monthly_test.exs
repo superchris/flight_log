@@ -9,7 +9,7 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
     setup :register_and_log_in_pilot
 
     test "lists flights for current pilot, airplane, and month", %{conn: conn, pilot: pilot} do
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{tail_number: "N12345"})
       flight_date = ~D[2024-01-15]
 
       # Create a flight for this pilot and airplane in January 2024
@@ -29,7 +29,7 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
       })
 
       {:ok, _index_live, html} =
-        live(conn, ~p"/flights/monthly/#{airplane.id}?year=2024&month=1")
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
 
       assert html =~ "Flights for #{airplane.tail_number}"
       assert html =~ "January 2024"
@@ -38,39 +38,39 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
     end
 
     test "shows empty state when no flights exist", %{conn: conn} do
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{tail_number: "N67890"})
 
       {:ok, _index_live, html} =
-        live(conn, ~p"/flights/monthly/#{airplane.id}?year=2024&month=1")
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
 
       assert html =~ "No flights"
       assert html =~ "January 2024"
     end
 
     test "navigates between months", %{conn: conn} do
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{tail_number: "N11111"})
 
       {:ok, index_live, _html} =
-        live(conn, ~p"/flights/monthly/#{airplane.id}?year=2024&month=1")
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
 
       # Test next month navigation
       index_live
       |> element("button", "Next Month")
       |> render_click()
 
-      assert_patch(index_live, ~p"/flights/monthly/#{airplane.id}?year=2024&month=2")
+      assert_patch(index_live, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=2")
 
       # Test previous month navigation
       index_live
       |> element("button", "Previous Month")
       |> render_click()
 
-      assert_patch(index_live, ~p"/flights/monthly/#{airplane.id}?year=2024&month=1")
+      assert_patch(index_live, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
     end
 
     test "redirects when airplane not found", %{conn: conn} do
       assert {:error, {:redirect, %{to: "/airplanes"}}} =
-        live(conn, ~p"/flights/monthly/999")
+        live(conn, ~p"/flights/monthly/INVALID")
     end
   end
 end

@@ -2,7 +2,7 @@
   Airplane {@airplane.id}
   <:subtitle>This is a airplane record from your database.</:subtitle>
   <:actions>
-    <.link navigate={~p"/flights/monthly/#{@airplane.id}"}>
+    <.link navigate={~p"/flights/monthly/#{@airplane.tail_number}"}>
       <.button>View Monthly Flights</.button>
     </.link>
     <.link navigate={~p"/flights/#{@airplane.tail_number}/new"}>

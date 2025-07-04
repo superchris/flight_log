@@ -6,30 +6,30 @@ defmodule FlightLogWeb.FlightLive.Monthly do
 
   import Ecto.Query, warn: false
 
-    @impl true
-  def mount(%{"airplane_id" => airplane_id} = params, _session, socket) do
-    try do
-      airplane = Airplanes.get_airplane!(airplane_id)
-      current_date = parse_date_params(params)
+      @impl true
+  def mount(%{"tail_number" => tail_number} = params, _session, socket) do
+    case Airplanes.get_airplane_by_tail_number(tail_number) do
+      {:ok, airplane} ->
+        current_date = parse_date_params(params)
 
-      flights = Flights.list_flights_for_pilot_airplane_month(
-        socket.assigns.current_pilot.id,
-        airplane.id,
-        current_date
-      )
+        flights = Flights.list_flights_for_pilot_airplane_month(
+          socket.assigns.current_pilot.id,
+          airplane.id,
+          current_date
+        )
 
-      {:ok,
-       socket
-       |> assign(:airplane, airplane)
-       |> assign(:current_date, current_date)
-       |> assign(:flights, flights)
-       |> assign(:page_title, "#{airplane.tail_number} - #{format_month(current_date)}")
-      }
-    rescue
-      Ecto.NoResultsError ->
         {:ok,
          socket
-         |> put_flash(:error, "Airplane not found.")
+         |> assign(:airplane, airplane)
+         |> assign(:current_date, current_date)
+         |> assign(:flights, flights)
+         |> assign(:page_title, "#{airplane.tail_number} - #{format_month(current_date)}")
+        }
+
+      {:error, :not_found} ->
+        {:ok,
+         socket
+         |> put_flash(:error, "Airplane with tail number '#{tail_number}' not found.")
          |> redirect(to: ~p"/airplanes")}
     end
   end
@@ -52,13 +52,13 @@ defmodule FlightLogWeb.FlightLive.Monthly do
     }
   end
 
-  @impl true
+    @impl true
   def handle_event("prev_month", _params, socket) do
     new_date = Date.add(socket.assigns.current_date, -Date.days_in_month(socket.assigns.current_date))
 
     {:noreply,
      socket
-     |> push_patch(to: ~p"/flights/monthly/#{socket.assigns.airplane.id}?year=#{new_date.year}&month=#{new_date.month}")
+     |> push_patch(to: ~p"/flights/monthly/#{socket.assigns.airplane.tail_number}?year=#{new_date.year}&month=#{new_date.month}")
     }
   end
 
@@ -68,7 +68,7 @@ defmodule FlightLogWeb.FlightLive.Monthly do
 
     {:noreply,
      socket
-     |> push_patch(to: ~p"/flights/monthly/#{socket.assigns.airplane.id}?year=#{new_date.year}&month=#{new_date.month}")
+     |> push_patch(to: ~p"/flights/monthly/#{socket.assigns.airplane.tail_number}?year=#{new_date.year}&month=#{new_date.month}")
     }
   end
 
