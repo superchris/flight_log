@@ -291,4 +291,188 @@ defmodule FlightLog.CostsTest do
       end
     end
   end
+
+  describe "get_monthly_costs_for_airplane/3" do
+    import FlightLog.AirplanesFixtures
+    import FlightLog.CostsFixtures
+
+    test "returns empty costs when no costs exist" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("10.5")
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      assert result.monthly_costs == []
+      assert result.hourly_costs == []
+      assert result.one_time_costs == []
+      assert result.total_monthly_cost == Decimal.new("0")
+      assert result.total_hourly_cost == Decimal.new("0.0")
+      assert result.total_one_time_cost == Decimal.new("0")
+      assert result.total_cost == Decimal.new("0.0")
+    end
+
+    test "includes monthly costs effective before or during the month" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("10.0")
+
+      # Cost effective before the month
+      monthly_cost_before = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "500.00", description: "Insurance", effective_date: ~D[2023-12-01]})
+      # Cost effective during the month
+      monthly_cost_during = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "600.00", description: "Hangar", effective_date: ~D[2024-01-15]})
+      # Cost effective after the month (should not be included)
+      _monthly_cost_after = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "700.00", description: "Subscription", effective_date: ~D[2024-02-01]})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      assert length(result.monthly_costs) == 2
+      cost_ids = Enum.map(result.monthly_costs, & &1.id)
+      assert monthly_cost_before.id in cost_ids
+      assert monthly_cost_during.id in cost_ids
+      assert result.total_monthly_cost == Decimal.new("1100.00")
+    end
+
+    test "includes hourly costs effective before or during the month and multiplies by flight hours" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("5.5")
+
+      # Cost effective before the month
+      hourly_cost_before = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "125.00", description: "Fuel", effective_date: ~D[2023-12-01]})
+      # Cost effective during the month
+      hourly_cost_during = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "150.00", description: "Maintenance", effective_date: ~D[2024-01-15]})
+      # Cost effective after the month (should not be included)
+      _hourly_cost_after = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "175.00", description: "Oil", effective_date: ~D[2024-02-01]})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      assert length(result.hourly_costs) == 2
+      cost_ids = Enum.map(result.hourly_costs, & &1.id)
+      assert hourly_cost_before.id in cost_ids
+      assert hourly_cost_during.id in cost_ids
+      # Total hourly cost should be (125 + 150) * 5.5 = 275 * 5.5 = 1512.50
+      assert result.total_hourly_cost == Decimal.new("1512.500")
+    end
+
+    test "includes one-time costs effective within the month only" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("10.0")
+
+      # Cost effective before the month (should not be included)
+      _one_time_cost_before = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "1000.00", effective_date: ~D[2023-12-15]})
+      # Cost effective during the month
+      one_time_cost_during = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "2500.00", effective_date: ~D[2024-01-15]})
+      # Cost effective after the month (should not be included)
+      _one_time_cost_after = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "3000.00", effective_date: ~D[2024-02-01]})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      assert length(result.one_time_costs) == 1
+      assert List.first(result.one_time_costs).id == one_time_cost_during.id
+      assert result.total_one_time_cost == Decimal.new("2500.00")
+    end
+
+    test "calculates total cost correctly" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("2.0")
+
+      # Monthly cost: 500.00
+      _monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "500.00", description: "Insurance", effective_date: ~D[2024-01-01]})
+      # Hourly cost: 100.00 * 2.0 = 200.00
+      _hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "100.00", description: "Fuel", effective_date: ~D[2024-01-01]})
+      # One-time cost: 1000.00
+      _one_time_cost = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "1000.00", description: "Maintenance", effective_date: ~D[2024-01-15]})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      # Total: 500.00 + 200.00 + 1000.00 = 1700.00
+      assert result.total_cost == Decimal.new("1700.000")
+    end
+
+    test "handles nil effective_date for monthly and hourly costs" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("3.0")
+
+      # Monthly cost with nil effective_date (should be included)
+      monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "800.00", description: "Insurance", effective_date: nil})
+      # Hourly cost with nil effective_date (should be included)
+      hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "90.00", description: "Fuel", effective_date: nil})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      assert length(result.monthly_costs) == 1
+      assert List.first(result.monthly_costs).id == monthly_cost.id
+      assert result.total_monthly_cost == Decimal.new("800.00")
+
+      assert length(result.hourly_costs) == 1
+      assert List.first(result.hourly_costs).id == hourly_cost.id
+      assert result.total_hourly_cost == Decimal.new("270.000")  # 90.00 * 3.0
+    end
+
+    test "gets latest cost for each description for monthly and hourly costs" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("1.0")
+
+            # Two monthly costs with same description, different effective dates
+      _old_monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "400.00",
+                                       description: "Insurance", effective_date: ~D[2023-11-01]})
+      new_monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "450.00",
+                                      description: "Insurance", effective_date: ~D[2023-12-01]})
+
+      # Two hourly costs with same description, different effective dates
+      _old_hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "120.00",
+                                      description: "Fuel", effective_date: ~D[2023-11-01]})
+      new_hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "130.00",
+                                     description: "Fuel", effective_date: ~D[2023-12-01]})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      # Should only get the latest cost for each description
+      assert length(result.monthly_costs) == 1
+      assert List.first(result.monthly_costs).id == new_monthly_cost.id
+      assert result.total_monthly_cost == Decimal.new("450.00")
+
+      assert length(result.hourly_costs) == 1
+      assert List.first(result.hourly_costs).id == new_hourly_cost.id
+      assert result.total_hourly_cost == Decimal.new("130.000")  # 130.00 * 1.0
+    end
+
+    test "handles zero flight hours correctly" do
+      airplane = airplane_fixture()
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("0")
+
+      _monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "500.00", description: "Insurance", effective_date: ~D[2024-01-01]})
+      _hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "100.00", description: "Fuel", effective_date: ~D[2024-01-01]})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane.id, month_date, total_flight_hours)
+
+      assert result.total_monthly_cost == Decimal.new("500.00")
+      assert result.total_hourly_cost == Decimal.new("0.00")  # 100.00 * 0 = 0
+      assert result.total_cost == Decimal.new("500.00")
+    end
+
+    test "filters costs by airplane_id" do
+      airplane1 = airplane_fixture()
+      airplane2 = airplane_fixture(%{tail_number: "DIFF-123"})
+      month_date = ~D[2024-01-01]
+      total_flight_hours = Decimal.new("5.0")
+
+      # Costs for airplane1
+      _cost1 = cost_fixture(%{airplane: airplane1, cost_type: :monthly, amount: "500.00", description: "Insurance", effective_date: ~D[2024-01-01]})
+      # Costs for airplane2 (should not be included)
+      _cost2 = cost_fixture(%{airplane: airplane2, cost_type: :monthly, amount: "600.00", description: "Insurance", effective_date: ~D[2024-01-01]})
+
+      result = Costs.get_monthly_costs_for_airplane(airplane1.id, month_date, total_flight_hours)
+
+      assert length(result.monthly_costs) == 1
+      assert List.first(result.monthly_costs).airplane_id == airplane1.id
+      assert result.total_monthly_cost == Decimal.new("500.00")
+    end
+  end
 end

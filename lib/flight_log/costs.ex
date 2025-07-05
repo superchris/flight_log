@@ -26,6 +26,98 @@ defmodule FlightLog.Costs do
   end
 
   @doc """
+  Returns costs for a given airplane and month, with calculated amounts.
+
+  ## Examples
+
+      iex> get_monthly_costs_for_airplane(airplane_id, ~D[2024-01-01], Decimal.new("10.5"))
+      %{
+        monthly_costs: [%Cost{}],
+        hourly_costs: [%Cost{}],
+        one_time_costs: [%Cost{}],
+        total_monthly_cost: Decimal.new("1200.00"),
+        total_hourly_cost: Decimal.new("1317.50"),
+        total_one_time_cost: Decimal.new("2500.00"),
+        total_cost: Decimal.new("5017.50")
+      }
+
+  """
+  def get_monthly_costs_for_airplane(airplane_id, month_date, total_flight_hours) do
+    start_of_month = Date.beginning_of_month(month_date)
+    end_of_month = Date.end_of_month(month_date)
+
+    # Get monthly costs effective before or during the month
+    monthly_costs = from(c in Cost,
+      where: c.airplane_id == ^airplane_id and
+             c.cost_type == :monthly and
+             (is_nil(c.effective_date) or c.effective_date <= ^end_of_month),
+      order_by: [desc: c.effective_date, desc: c.inserted_at]
+    )
+    |> Repo.all()
+    |> get_latest_costs_by_description()
+
+    # Get hourly costs effective before or during the month
+    hourly_costs = from(c in Cost,
+      where: c.airplane_id == ^airplane_id and
+             c.cost_type == :hourly and
+             (is_nil(c.effective_date) or c.effective_date <= ^end_of_month),
+      order_by: [desc: c.effective_date, desc: c.inserted_at]
+    )
+    |> Repo.all()
+    |> get_latest_costs_by_description()
+
+    # Get one-time costs effective within the month
+    one_time_costs = from(c in Cost,
+      where: c.airplane_id == ^airplane_id and
+             c.cost_type == :one_time and
+             c.effective_date >= ^start_of_month and
+             c.effective_date <= ^end_of_month,
+      order_by: [asc: c.effective_date]
+    )
+    |> Repo.all()
+
+    # Calculate totals
+    total_monthly_cost = monthly_costs
+    |> Enum.map(& &1.amount)
+    |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
+
+    total_hourly_cost = hourly_costs
+    |> Enum.map(& &1.amount)
+    |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
+    |> Decimal.mult(total_flight_hours)
+
+    total_one_time_cost = one_time_costs
+    |> Enum.map(& &1.amount)
+    |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
+
+    total_cost = total_monthly_cost
+    |> Decimal.add(total_hourly_cost)
+    |> Decimal.add(total_one_time_cost)
+
+    %{
+      monthly_costs: monthly_costs,
+      hourly_costs: hourly_costs,
+      one_time_costs: one_time_costs,
+      total_monthly_cost: total_monthly_cost,
+      total_hourly_cost: total_hourly_cost,
+      total_one_time_cost: total_one_time_cost,
+      total_cost: total_cost
+    }
+  end
+
+  # Helper function to get the latest cost for each description
+  # This ensures we only get the most recent cost for each type
+  defp get_latest_costs_by_description(costs) do
+    costs
+    |> Enum.group_by(& (&1.description || "default"))
+    |> Enum.map(fn {_description, costs_group} ->
+      costs_group
+      |> Enum.sort_by(&{&1.effective_date || ~D[1900-01-01], &1.inserted_at}, :desc)
+      |> List.first()
+    end)
+  end
+
+  @doc """
   Gets a single cost.
 
   Raises `Ecto.NoResultsError` if the Cost does not exist.

@@ -3,6 +3,7 @@ defmodule FlightLogWeb.FlightLive.Monthly do
 
   alias FlightLog.Flights
   alias FlightLog.Airplanes
+  alias FlightLog.Costs
 
   import Ecto.Query, warn: false
 
@@ -19,11 +20,15 @@ defmodule FlightLogWeb.FlightLive.Monthly do
         )
         |> Flights.add_flight_hours()
 
+        total_flight_hours = calculate_total_flight_hours(flights)
+        costs = Costs.get_monthly_costs_for_airplane(airplane.id, current_date, total_flight_hours)
+
         {:ok,
          socket
          |> assign(:airplane, airplane)
          |> assign(:current_date, current_date)
          |> assign(:flights, flights)
+         |> assign(:costs, costs)
          |> assign(:page_title, "#{airplane.tail_number} - #{format_month(current_date)}")
         }
 
@@ -46,10 +51,14 @@ defmodule FlightLogWeb.FlightLive.Monthly do
     )
     |> Flights.add_flight_hours()
 
+    total_flight_hours = calculate_total_flight_hours(flights)
+    costs = Costs.get_monthly_costs_for_airplane(socket.assigns.airplane.id, current_date, total_flight_hours)
+
     {:noreply,
      socket
      |> assign(:current_date, current_date)
      |> assign(:flights, flights)
+     |> assign(:costs, costs)
      |> assign(:page_title, "#{socket.assigns.airplane.tail_number} - #{format_month(current_date)}")
     }
   end

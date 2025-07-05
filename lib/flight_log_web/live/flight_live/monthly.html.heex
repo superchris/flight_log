@@ -96,6 +96,83 @@
     </div>
   <% end %>
 
+  <!-- Costs Section -->
+  <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
+    <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+      <h3 class="text-lg leading-6 font-medium text-gray-900">
+        Monthly Costs for {format_month(@current_date)}
+      </h3>
+    </div>
+    <div class="px-6 py-4">
+      <%= if Decimal.equal?(@costs.total_cost, Decimal.new("0")) do %>
+        <p class="text-sm text-gray-500">No costs recorded for this month.</p>
+      <% else %>
+        <!-- Monthly Costs -->
+        <%= if not Enum.empty?(@costs.monthly_costs) do %>
+          <div class="mb-4">
+            <h4 class="text-sm font-medium text-gray-900 mb-2">Monthly Costs</h4>
+            <ul class="space-y-1">
+              <%= for cost <- @costs.monthly_costs do %>
+                <li class="flex justify-between text-sm">
+                  <span class="text-gray-600">{cost.description || "Monthly cost"}</span>
+                  <span class="text-gray-900">${Decimal.round(cost.amount, 2)}</span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <!-- Hourly Costs -->
+        <%= if not Enum.empty?(@costs.hourly_costs) and calculate_total_flight_hours(@flights) > 0 do %>
+          <div class="mb-4">
+            <h4 class="text-sm font-medium text-gray-900 mb-2">Hourly Costs</h4>
+            <ul class="space-y-1">
+              <%= for cost <- @costs.hourly_costs do %>
+                <li class="flex justify-between text-sm">
+                  <span class="text-gray-600">
+                    {cost.description || "Hourly cost"} 
+                    (${Decimal.round(cost.amount, 2)}/hr × {calculate_total_flight_hours(@flights)} hrs)
+                  </span>
+                  <span class="text-gray-900">${Decimal.round(Decimal.mult(cost.amount, calculate_total_flight_hours(@flights)), 2)}</span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <!-- One-time Costs -->
+        <%= if not Enum.empty?(@costs.one_time_costs) do %>
+          <div class="mb-4">
+            <h4 class="text-sm font-medium text-gray-900 mb-2">One-time Costs</h4>
+            <ul class="space-y-1">
+              <%= for cost <- @costs.one_time_costs do %>
+                <li class="flex justify-between text-sm">
+                  <span class="text-gray-600">
+                    {cost.description || "One-time cost"} 
+                    (<%= if cost.effective_date do %>
+                      {format_date(cost.effective_date)}
+                    <% else %>
+                      No date
+                    <% end %>)
+                  </span>
+                  <span class="text-gray-900">${Decimal.round(cost.amount, 2)}</span>
+                </li>
+              <% end %>
+            </ul>
+          </div>
+        <% end %>
+
+        <!-- Total Cost -->
+        <div class="border-t border-gray-200 pt-4">
+          <div class="flex justify-between items-center">
+            <span class="text-base font-semibold text-gray-900">Total Monthly Cost:</span>
+            <span class="text-lg font-bold text-gray-900">${Decimal.round(@costs.total_cost, 2)}</span>
+          </div>
+        </div>
+      <% end %>
+    </div>
+  </div>
+
   <div class="mt-8">
     <.back navigate={~p"/airplanes/#{@airplane.id}"}>Back to airplane</.back>
   </div>

@@ -222,5 +222,185 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
       assert html =~ "No flights"
       refute html =~ "Total Hours:"  # Should not show total when no flights
     end
+
+    test "displays costs when costs exist", %{conn: conn, pilot: pilot} do
+      import FlightLog.CostsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N12345", initial_hobbs_reading: Decimal.new("100.0")})
+
+      # Create flights for January 2024
+      _flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("102.0")  # 2.0 hours
+      })
+
+            # Create costs
+      _monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "500.00",
+                                   description: "Insurance", effective_date: ~D[2024-01-01]})
+      _hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "125.00",
+                                  description: "Fuel", effective_date: ~D[2024-01-01]})
+      _one_time_cost = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "2000.00",
+                                    description: "Maintenance", effective_date: ~D[2024-01-10]})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # Should show costs section
+      assert html =~ "Monthly Costs for January 2024"
+
+      # Should show monthly costs
+      assert html =~ "Monthly Costs"
+      assert html =~ "Insurance"
+      assert html =~ "$500.00"
+
+      # Should show hourly costs
+      assert html =~ "Hourly Costs"
+      assert html =~ "Fuel"
+      assert html =~ "$125.00/hr × 2.0 hrs"
+      assert html =~ "$250.00"
+
+      # Should show one-time costs
+      assert html =~ "One-time Costs"
+      assert html =~ "Maintenance"
+      assert html =~ "$2000.00"
+
+      # Should show total cost (500 + 250 + 2000 = 2750)
+      assert html =~ "Total Monthly Cost:"
+      assert html =~ "$2750.00"
+    end
+
+    test "displays no costs message when no costs exist", %{conn: conn} do
+      airplane = airplane_fixture(%{tail_number: "N99999"})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      assert html =~ "Monthly Costs for January 2024"
+      assert html =~ "No costs recorded for this month"
+    end
+
+    test "updates costs when navigating between months", %{conn: conn, pilot: pilot} do
+      import FlightLog.CostsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N11111", initial_hobbs_reading: Decimal.new("50.0")})
+
+      # Create flight in January
+      _flight_jan = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("52.0")  # 2.0 hours
+      })
+
+      # Create flight in February
+      _flight_feb = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-02-15],
+        hobbs_reading: Decimal.new("53.0")  # 1.0 hours
+      })
+
+            # Create costs
+      _monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "600.00",
+                                   description: "Insurance", effective_date: ~D[2024-01-01]})
+      _hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "100.00",
+                                  description: "Fuel", effective_date: ~D[2024-01-01]})
+      _one_time_cost_jan = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "1500.00",
+                                        description: "January Maintenance", effective_date: ~D[2024-01-10]})
+      _one_time_cost_feb = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "800.00",
+                                        description: "February Maintenance", effective_date: ~D[2024-02-05]})
+
+      {:ok, index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # January costs: 600 (monthly) + 200 (hourly: 100*2) + 1500 (one-time) = 2300
+      assert html =~ "Monthly Costs for January 2024"
+      assert html =~ "January Maintenance"
+      assert html =~ "$2300.00"
+      refute html =~ "February Maintenance"
+
+      # Navigate to February
+      index_live
+      |> element("button", "Next Month")
+      |> render_click()
+
+      html = render(index_live)
+
+      # February costs: 600 (monthly) + 300 (hourly: 100*3) + 800 (one-time) = 1700
+      assert html =~ "Monthly Costs for February 2024"
+      assert html =~ "February Maintenance"
+      assert html =~ "$1700.00"
+      refute html =~ "January Maintenance"
+    end
+
+    test "handles zero flight hours with hourly costs", %{conn: conn} do
+      import FlightLog.CostsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N22222"})
+
+            # Create hourly cost but no flights
+      _hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "150.00",
+                                  description: "Fuel", effective_date: ~D[2024-01-01]})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # Should not show hourly costs section when no flight hours
+      refute html =~ "Hourly Costs"
+      assert html =~ "No costs recorded for this month"
+    end
+
+    test "handles costs with nil effective date", %{conn: conn, pilot: pilot} do
+      import FlightLog.CostsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N33333", initial_hobbs_reading: Decimal.new("75.0")})
+
+      # Create flight
+      _flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("76.5")  # 1.5 hours
+      })
+
+            # Create costs with nil effective date
+      _monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "400.00",
+                                   description: "Insurance", effective_date: nil})
+      _hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "80.00",
+                                  description: "Fuel", effective_date: nil})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # Should show costs even with nil effective date
+      assert html =~ "Insurance"
+      assert html =~ "$400.00"
+      assert html =~ "Fuel"
+      assert html =~ "$80.00/hr × 1.5 hrs"
+      assert html =~ "$120.00"
+
+      # Total: 400 + 120 = 520
+      assert html =~ "$520.00"
+    end
+
+    test "displays costs with proper date formatting", %{conn: conn} do
+      import FlightLog.CostsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N44444"})
+
+            # Create one-time cost with specific date
+      _one_time_cost = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "1200.00",
+                                    description: "Special Maintenance", effective_date: ~D[2024-01-25]})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # Should show formatted date
+      assert html =~ "Special Maintenance"
+      assert html =~ "01/25/2024"
+      assert html =~ "$1200.00"
+    end
   end
 end
