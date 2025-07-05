@@ -46,53 +46,17 @@ defmodule FlightLog.Costs do
     start_of_month = Date.beginning_of_month(month_date)
     end_of_month = Date.end_of_month(month_date)
 
-    # Get monthly costs effective before or during the month
-    monthly_costs = from(c in Cost,
-      where: c.airplane_id == ^airplane_id and
-             c.cost_type == :monthly and
-             (is_nil(c.effective_date) or c.effective_date <= ^end_of_month),
-      order_by: [desc: c.effective_date, desc: c.inserted_at]
-    )
-    |> Repo.all()
-    |> get_latest_costs_by_description()
-
-    # Get hourly costs effective before or during the month
-    hourly_costs = from(c in Cost,
-      where: c.airplane_id == ^airplane_id and
-             c.cost_type == :hourly and
-             (is_nil(c.effective_date) or c.effective_date <= ^end_of_month),
-      order_by: [desc: c.effective_date, desc: c.inserted_at]
-    )
-    |> Repo.all()
-    |> get_latest_costs_by_description()
-
-    # Get one-time costs effective within the month
-    one_time_costs = from(c in Cost,
-      where: c.airplane_id == ^airplane_id and
-             c.cost_type == :one_time and
-             c.effective_date >= ^start_of_month and
-             c.effective_date <= ^end_of_month,
-      order_by: [asc: c.effective_date]
-    )
-    |> Repo.all()
+    # Get costs by type with appropriate date filtering
+    monthly_costs = get_effective_costs(airplane_id, :monthly, nil, end_of_month)
+    hourly_costs = get_effective_costs(airplane_id, :hourly, nil, end_of_month)
+    one_time_costs = get_effective_costs(airplane_id, :one_time, start_of_month, end_of_month)
 
     # Calculate totals
-    total_monthly_cost = monthly_costs
-    |> Enum.map(& &1.amount)
-    |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
-
-    total_hourly_cost = hourly_costs
-    |> Enum.map(& &1.amount)
-    |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
-    |> Decimal.mult(total_flight_hours)
-
-    total_one_time_cost = one_time_costs
-    |> Enum.map(& &1.amount)
-    |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
-
-    total_cost = total_monthly_cost
-    |> Decimal.add(total_hourly_cost)
-    |> Decimal.add(total_one_time_cost)
+    total_monthly_cost = calculate_total_amount(monthly_costs)
+    total_hourly_cost = calculate_total_amount(hourly_costs) |> Decimal.mult(total_flight_hours)
+    total_one_time_cost = calculate_total_amount(one_time_costs)
+    total_cost = [total_monthly_cost, total_hourly_cost, total_one_time_cost]
+                 |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
 
     %{
       monthly_costs: monthly_costs,
@@ -103,6 +67,50 @@ defmodule FlightLog.Costs do
       total_one_time_cost: total_one_time_cost,
       total_cost: total_cost
     }
+  end
+
+  # Helper function to get costs by type with date filtering
+  defp get_effective_costs(airplane_id, cost_type, start_date, end_date) do
+    order_by = build_order_by(cost_type)
+
+    query = from(c in Cost,
+      where: c.airplane_id == ^airplane_id and c.cost_type == ^cost_type,
+      order_by: ^order_by
+    )
+
+    query
+    |> add_date_filter(start_date, end_date)
+    |> Repo.all()
+    |> maybe_get_latest_by_description(cost_type)
+  end
+
+  # Build appropriate ordering based on cost type
+  defp build_order_by(:one_time), do: [asc: :effective_date]
+  defp build_order_by(_), do: [desc: :effective_date, desc: :inserted_at]
+
+  # Add date filtering to query based on cost type
+  defp add_date_filter(query, nil, end_date) do
+    # For monthly and hourly costs: effective before or during the month
+    from(c in query, where: is_nil(c.effective_date) or c.effective_date <= ^end_date)
+  end
+
+  defp add_date_filter(query, start_date, end_date) do
+    # For one-time costs: effective within the month only
+    from(c in query, where: c.effective_date >= ^start_date and c.effective_date <= ^end_date)
+  end
+
+  # Apply latest cost filtering for monthly and hourly costs only
+  defp maybe_get_latest_by_description(costs, cost_type) when cost_type in [:monthly, :hourly] do
+    get_latest_costs_by_description(costs)
+  end
+
+  defp maybe_get_latest_by_description(costs, _cost_type), do: costs
+
+  # Helper function to calculate total amount from a list of costs
+  defp calculate_total_amount(costs) do
+    costs
+    |> Enum.map(& &1.amount)
+    |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
   end
 
   # Helper function to get the latest cost for each description
