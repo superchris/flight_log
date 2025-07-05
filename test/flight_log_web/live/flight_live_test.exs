@@ -58,7 +58,7 @@ defmodule FlightLogWeb.FlightLiveTest do
     test "updates flight in listing", %{conn: conn, flight: flight, update_attrs: update_attrs, invalid_attrs: invalid_attrs} do
       {:ok, index_live, _html} = live(conn, ~p"/flights")
 
-      assert index_live |> element("#flights-#{flight.id} a", "Edit") |> render_click() =~
+      assert index_live |> element("#flights-#{flight.id} a[href$='/edit']") |> render_click() =~
                "Edit Flight"
 
       assert_patch(index_live, ~p"/flights/#{flight}/edit")

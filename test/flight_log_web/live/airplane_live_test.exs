@@ -21,7 +21,7 @@ defmodule FlightLogWeb.AirplaneLiveTest do
     test "saves new airplane", %{conn: conn} do
       {:ok, index_live, _html} = live(conn, ~p"/airplanes")
 
-      assert index_live |> element("a", "New Airplane") |> render_click() =~
+      assert index_live |> element("a", "Add Aircraft") |> render_click() =~
                "New Airplane"
 
       assert_patch(index_live, ~p"/airplanes/new")
@@ -44,7 +44,7 @@ defmodule FlightLogWeb.AirplaneLiveTest do
     test "updates airplane in listing", %{conn: conn, airplane: airplane} do
       {:ok, index_live, _html} = live(conn, ~p"/airplanes")
 
-      assert index_live |> element("#airplanes-#{airplane.id} a", "Edit") |> render_click() =~
+      assert index_live |> element("#airplanes-#{airplane.id} a[href$='/edit']") |> render_click() =~
                "Edit Airplane"
 
       assert_patch(index_live, ~p"/airplanes/#{airplane}/edit")

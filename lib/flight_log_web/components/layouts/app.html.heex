@@ -1,32 +1,110 @@
-<header class="px-4 sm:px-6 lg:px-8">
-  <div class="flex items-center justify-between border-b border-zinc-100 py-3 text-sm">
-    <div class="flex items-center gap-4">
-      <a href="/">
-        <img src={~p"/images/logo.svg"} width="36" />
-      </a>
-      <p class="bg-brand/5 text-brand rounded-full px-2 font-medium leading-6">
-        v{Application.spec(:phoenix, :vsn)}
-      </p>
+<!-- Flight Log App Layout -->
+<div class="min-h-screen bg-gray-50">
+  <!-- Navigation Header -->
+  <nav class="bg-white shadow-sm border-b border-gray-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between items-center h-16">
+        <!-- Logo and Brand -->
+        <div class="flex items-center">
+          <div class="flex-shrink-0 flex items-center">
+            <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
+            </svg>
+            <span class="ml-2 text-xl font-bold text-gray-900">Flight Log</span>
+          </div>
+        </div>
+
+        <!-- Navigation Links -->
+        <div class="hidden md:block">
+          <div class="ml-10 flex items-baseline space-x-4">
+            <.link navigate={~p"/"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              Dashboard
+            </.link>
+            <.link navigate={~p"/airplanes"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              Airplanes
+            </.link>
+            <.link navigate={~p"/flights"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+              Flights
+            </.link>
+          </div>
+        </div>
+
+        <!-- User Menu -->
+        <div class="hidden md:block">
+          <div class="ml-4 flex items-center md:ml-6">
+            <%= if assigns[:current_pilot] do %>
+              <div class="relative">
+                <span class="text-sm text-gray-700">Welcome, <%= @current_pilot.first_name || @current_pilot.email %></span>
+                <div class="ml-3 flex items-center space-x-2">
+                  <.link navigate={~p"/pilots/settings"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    Settings
+                  </.link>
+                  <.link href={~p"/pilots/log_out"} method="delete" class="text-gray-600 hover:text-red-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                    Log out
+                  </.link>
+                </div>
+              </div>
+            <% else %>
+              <div class="flex items-center space-x-2">
+                <.link navigate={~p"/pilots/log_in"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                  Log in
+                </.link>
+                <.link navigate={~p"/pilots/register"} class="bg-blue-600 text-white hover:bg-blue-700 px-4 py-2 rounded-md text-sm font-medium transition-colors">
+                  Register
+                </.link>
+              </div>
+            <% end %>
+          </div>
+        </div>
+
+        <!-- Mobile menu button -->
+        <div class="md:hidden">
+          <button type="button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-gray-500 hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500" aria-controls="mobile-menu" aria-expanded="false">
+            <span class="sr-only">Open main menu</span>
+            <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+          </button>
+        </div>
+      </div>
     </div>
-    <div class="flex items-center gap-4 font-semibold leading-6 text-zinc-900">
-      <a href="https://twitter.com/elixirphoenix" class="hover:text-zinc-700">
-        @elixirphoenix
-      </a>
-      <a href="https://github.com/phoenixframework/phoenix" class="hover:text-zinc-700">
-        GitHub
-      </a>
-      <a
-        href="https://hexdocs.pm/phoenix/overview.html"
-        class="rounded-lg bg-zinc-100 px-2 py-1 hover:bg-zinc-200/80"
-      >
-        Get Started <span aria-hidden="true">&rarr;</span>
-      </a>
+
+    <!-- Mobile menu -->
+    <div class="md:hidden" id="mobile-menu">
+      <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
+        <.link navigate={~p"/"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+          Dashboard
+        </.link>
+        <.link navigate={~p"/airplanes"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+          Airplanes
+        </.link>
+        <.link navigate={~p"/flights"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+          Flights
+        </.link>
+        <%= if assigns[:current_pilot] do %>
+          <.link navigate={~p"/pilots/settings"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+            Settings
+          </.link>
+          <.link href={~p"/pilots/log_out"} method="delete" class="text-gray-600 hover:text-red-600 block px-3 py-2 rounded-md text-base font-medium">
+            Log out
+          </.link>
+        <% else %>
+          <.link navigate={~p"/pilots/log_in"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+            Log in
+          </.link>
+          <.link navigate={~p"/pilots/register"} class="bg-blue-600 text-white hover:bg-blue-700 block px-3 py-2 rounded-md text-base font-medium">
+            Register
+          </.link>
+        <% end %>
+      </div>
     </div>
-  </div>
-</header>
-<main class="px-4 py-20 sm:px-6 lg:px-8">
-  <div class="mx-auto max-w-2xl">
-    <.flash_group flash={@flash} />
-    {@inner_content}
-  </div>
-</main>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+    <div class="px-4 py-6 sm:px-0">
+      <.flash_group flash={@flash} />
+      {@inner_content}
+    </div>
+  </main>
+</div>
