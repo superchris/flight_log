@@ -50,6 +50,9 @@
     <:col :let={cost} label="Description">
       {cost.description || "—"}
     </:col>
+    <:col :let={cost} label="Effective Date">
+      {if cost.effective_date, do: Calendar.strftime(cost.effective_date, "%m/%d/%Y"), else: "—"}
+    </:col>
     <:col :let={cost} label="Added">
       {Calendar.strftime(cost.inserted_at, "%m/%d/%Y")}
     </:col>

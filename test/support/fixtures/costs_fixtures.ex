@@ -27,6 +27,19 @@ defmodule FlightLog.CostsFixtures do
   end
 
   @doc """
+  Generate a cost with effective date.
+  """
+  def cost_with_effective_date_fixture(attrs \\ %{}) do
+    default_attrs = %{
+      effective_date: ~D[2024-01-15]
+    }
+
+    attrs
+    |> Enum.into(default_attrs)
+    |> cost_fixture()
+  end
+
+  @doc """
   Generate a monthly cost.
   """
   def monthly_cost_fixture(attrs \\ %{}) do
@@ -48,5 +61,21 @@ defmodule FlightLog.CostsFixtures do
   def one_time_cost_fixture(attrs \\ %{}) do
     attrs = Enum.into(attrs, %{})
     cost_fixture(Map.merge(attrs, %{cost_type: :one_time, amount: "50000.00", description: "Purchase price"}))
+  end
+
+  @doc """
+  Generate a one-time cost with effective date.
+  """
+  def one_time_cost_with_effective_date_fixture(attrs \\ %{}) do
+    default_attrs = %{
+      cost_type: :one_time,
+      amount: "2500.00",
+      description: "One-time maintenance",
+      effective_date: ~D[2024-06-15]
+    }
+
+    attrs
+    |> Enum.into(default_attrs)
+    |> cost_fixture()
   end
 end

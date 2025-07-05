@@ -200,6 +200,73 @@ defmodule FlightLog.CostsTest do
       # Cost should be automatically deleted
       assert_raise Ecto.NoResultsError, fn -> Costs.get_cost!(cost.id) end
     end
+
+    test "create_cost/1 with effective_date creates a cost with effective date" do
+      airplane = airplane_fixture()
+      effective_date = ~D[2024-06-15]
+      valid_attrs = %{
+        airplane_id: airplane.id,
+        cost_type: :one_time,
+        amount: "2500.00",
+        description: "One-time maintenance",
+        effective_date: effective_date
+      }
+
+      assert {:ok, %Cost{} = cost} = Costs.create_cost(valid_attrs)
+      assert cost.airplane_id == airplane.id
+      assert cost.cost_type == :one_time
+      assert cost.amount == Decimal.new("2500.00")
+      assert cost.description == "One-time maintenance"
+      assert cost.effective_date == effective_date
+    end
+
+    test "create_cost/1 allows effective_date to be nil" do
+      airplane = airplane_fixture()
+      valid_attrs = %{
+        airplane_id: airplane.id,
+        cost_type: :monthly,
+        amount: "1200.00",
+        description: "Monthly cost"
+      }
+
+      assert {:ok, %Cost{} = cost} = Costs.create_cost(valid_attrs)
+      assert cost.effective_date == nil
+    end
+
+    test "update_cost/2 with effective_date updates the cost" do
+      cost = cost_fixture()
+      effective_date = ~D[2024-03-20]
+      update_attrs = %{
+        cost_type: :one_time,
+        amount: "1500.00",
+        description: "Updated maintenance cost",
+        effective_date: effective_date
+      }
+
+      assert {:ok, %Cost{} = updated_cost} = Costs.update_cost(cost, update_attrs)
+      assert updated_cost.cost_type == :one_time
+      assert updated_cost.amount == Decimal.new("1500.00")
+      assert updated_cost.description == "Updated maintenance cost"
+      assert updated_cost.effective_date == effective_date
+    end
+
+    test "update_cost/2 can set effective_date to nil" do
+      cost = cost_with_effective_date_fixture()
+      assert cost.effective_date != nil
+
+      update_attrs = %{effective_date: nil}
+
+      assert {:ok, %Cost{} = updated_cost} = Costs.update_cost(cost, update_attrs)
+      assert updated_cost.effective_date == nil
+    end
+
+    test "change_cost/2 returns a cost changeset with effective_date" do
+      cost = cost_fixture()
+      effective_date = ~D[2024-05-10]
+      changeset = Costs.change_cost(cost, %{effective_date: effective_date})
+      assert %Ecto.Changeset{} = changeset
+      assert changeset.changes.effective_date == effective_date
+    end
   end
 
     describe "cost types" do

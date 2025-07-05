@@ -32,6 +32,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponent do
         />
         <.input field={@form[:amount]} type="number" label="Amount ($)" step="0.01" />
         <.input field={@form[:description]} type="text" label="Description (optional)" />
+        <.input field={@form[:effective_date]} type="date" label="Effective Date (optional)" />
         <:actions>
           <.button phx-disable-with="Saving...">Save Cost</.button>
         </:actions>
