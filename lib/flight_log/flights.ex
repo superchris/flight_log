@@ -46,6 +46,29 @@ defmodule FlightLog.Flights do
   end
 
   @doc """
+  Returns the list of flights for a specific airplane and month (all pilots).
+
+  ## Examples
+
+      iex> list_flights_for_airplane_month(2, ~D[2024-01-01])
+      [%Flight{}, ...]
+
+  """
+  def list_flights_for_airplane_month(airplane_id, date) do
+    start_of_month = Date.beginning_of_month(date)
+    end_of_month = Date.end_of_month(date)
+
+    from(f in Flight,
+      where: f.airplane_id == ^airplane_id,
+      where: f.flight_date >= ^start_of_month,
+      where: f.flight_date <= ^end_of_month,
+      order_by: [desc: f.flight_date, desc: f.inserted_at],
+      preload: [:pilot, :airplane]
+    )
+    |> Repo.all()
+  end
+
+  @doc """
   Gets a single flight.
 
   Raises `Ecto.NoResultsError` if the Flight does not exist.

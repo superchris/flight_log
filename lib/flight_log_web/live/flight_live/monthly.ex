@@ -13,8 +13,7 @@ defmodule FlightLogWeb.FlightLive.Monthly do
       {:ok, airplane} ->
         current_date = parse_date_params(params)
 
-        flights = Flights.list_flights_for_pilot_airplane_month(
-          socket.assigns.current_pilot.id,
+        flights = Flights.list_flights_for_airplane_month(
           airplane.id,
           current_date
         )
@@ -44,8 +43,7 @@ defmodule FlightLogWeb.FlightLive.Monthly do
   def handle_params(params, _url, socket) do
     current_date = parse_date_params(params)
 
-    flights = Flights.list_flights_for_pilot_airplane_month(
-      socket.assigns.current_pilot.id,
+    flights = Flights.list_flights_for_airplane_month(
       socket.assigns.airplane.id,
       current_date
     )
@@ -124,5 +122,36 @@ defmodule FlightLogWeb.FlightLive.Monthly do
     |> Decimal.round(1)
   end
 
+    defp group_flights_by_pilot(flights) do
+    flights
+    |> Enum.group_by(fn flight ->
+      "#{flight.pilot.first_name} #{flight.pilot.last_name}"
+    end)
+    |> Enum.sort_by(fn {pilot_name, _flights} -> pilot_name end)
+  end
+
+  defp calculate_pilot_costs(costs, pilot_hours) do
+    # Calculate hourly costs for this pilot's hours
+    hourly_cost_per_hour = costs.hourly_costs
+                          |> Enum.map(& &1.amount)
+                          |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
+
+    pilot_hourly_cost = Decimal.mult(hourly_cost_per_hour, pilot_hours)
+
+    # Monthly and one-time costs apply to all pilots (shared airplane costs)
+    pilot_monthly_cost = costs.total_monthly_cost
+    pilot_one_time_cost = costs.total_one_time_cost
+
+    # Calculate total
+    total_cost = [pilot_hourly_cost, pilot_monthly_cost, pilot_one_time_cost]
+                |> Enum.reduce(Decimal.new("0"), &Decimal.add/2)
+
+    %{
+      hourly_cost: pilot_hourly_cost,
+      monthly_cost: pilot_monthly_cost,
+      one_time_cost: pilot_one_time_cost,
+      total_cost: total_cost
+    }
+  end
 
 end

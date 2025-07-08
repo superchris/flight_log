@@ -19,24 +19,6 @@ defmodule FlightLogWeb.Router do
 
   scope "/", FlightLogWeb do
     pipe_through :browser
-
-    get "/", PageController, :home
-
-    live "/airplanes", AirplaneLive.Index, :index
-    live "/airplanes/new", AirplaneLive.Index, :new
-    live "/airplanes/:id/edit", AirplaneLive.Index, :edit
-
-    live "/airplanes/:id", AirplaneLive.Show, :show
-    live "/airplanes/:id/show/edit", AirplaneLive.Show, :edit
-    live "/airplanes/:id/costs/new", AirplaneLive.Show, :new_cost
-    live "/airplanes/:id/costs/:cost_id/edit", AirplaneLive.Show, :edit_cost
-
-    live "/flights", FlightLive.Index, :index
-    live "/flights/new", FlightLive.Index, :new
-    live "/flights/:id/edit", FlightLive.Index, :edit
-
-    live "/flights/:id", FlightLive.Show, :show
-    live "/flights/:id/show/edit", FlightLive.Show, :edit
   end
 
   # Other scopes may use custom stacks.
@@ -82,10 +64,28 @@ defmodule FlightLogWeb.Router do
 
     live_session :require_authenticated_pilot,
       on_mount: [{FlightLogWeb.PilotAuth, :ensure_authenticated}] do
+      get "/", PageController, :home
+
       live "/pilots/settings", PilotSettingsLive, :edit
       live "/pilots/settings/confirm_email/:token", PilotSettingsLive, :confirm_email
       live "/flights/:tail_number/new", FlightLive.LogFlight, :new
       live "/flights/monthly/:tail_number", FlightLive.Monthly, :index
+
+      live "/airplanes", AirplaneLive.Index, :index
+      live "/airplanes/new", AirplaneLive.Index, :new
+      live "/airplanes/:id/edit", AirplaneLive.Index, :edit
+
+      live "/airplanes/:id", AirplaneLive.Show, :show
+      live "/airplanes/:id/show/edit", AirplaneLive.Show, :edit
+      live "/airplanes/:id/costs/new", AirplaneLive.Show, :new_cost
+      live "/airplanes/:id/costs/:cost_id/edit", AirplaneLive.Show, :edit_cost
+
+      live "/flights", FlightLive.Index, :index
+      live "/flights/new", FlightLive.Index, :new
+      live "/flights/:id/edit", FlightLive.Index, :edit
+
+      live "/flights/:id", FlightLive.Show, :show
+      live "/flights/:id/show/edit", FlightLive.Show, :edit
     end
   end
 

@@ -8,16 +8,27 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
     describe "Monthly Flights" do
     setup :register_and_log_in_pilot
 
-    test "lists flights for current pilot, airplane, and month", %{conn: conn, pilot: pilot} do
+    test "lists flights for all pilots, airplane, and month", %{conn: conn, pilot: pilot} do
+      import FlightLog.AccountsFixtures
+
       airplane = airplane_fixture(%{tail_number: "N12345"})
+      other_pilot = pilot_fixture(%{first_name: "Alice", last_name: "Johnson"})
       flight_date = ~D[2024-01-15]
 
       # Create a flight for this pilot and airplane in January 2024
-      _flight = flight_fixture(%{
+      _flight1 = flight_fixture(%{
         pilot_id: pilot.id,
         airplane_id: airplane.id,
         flight_date: flight_date,
         hobbs_reading: Decimal.new("10.5")
+      })
+
+      # Create a flight for another pilot in the same month (should appear)
+      _flight2 = flight_fixture(%{
+        pilot_id: other_pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-20],
+        hobbs_reading: Decimal.new("12.0")
       })
 
       # Create a flight in a different month (should not appear)
@@ -31,9 +42,12 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
       {:ok, _index_live, html} =
         live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
 
-      assert html =~ "Flights for #{airplane.tail_number}"
+      assert html =~ "All Flights for #{airplane.tail_number}"
       assert html =~ "January 2024"
-      assert html =~ "10.5"
+      assert html =~ "10.5"  # First pilot's flight
+      assert html =~ "12.0"  # Second pilot's flight
+      assert html =~ "#{pilot.first_name} #{pilot.last_name}"
+      assert html =~ "#{other_pilot.first_name} #{other_pilot.last_name}"
       refute html =~ "5.2"  # February flight should not appear
     end
 
@@ -401,6 +415,115 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
       assert html =~ "Special Maintenance"
       assert html =~ "01/25/2024"
       assert html =~ "$1200.00"
+    end
+
+        test "displays pilot summary with flight counts and hours", %{conn: conn, pilot: pilot} do
+      import FlightLog.AccountsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N55555", initial_hobbs_reading: Decimal.new("100.0")})
+      other_pilot = pilot_fixture(%{first_name: "Jane", last_name: "Smith"})
+
+      # Create flights for first pilot
+      _flight1 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-10],
+        hobbs_reading: Decimal.new("102.5"),  # 2.5 hours
+        inserted_at: ~U[2024-01-10 10:00:00Z]
+      })
+
+      _flight2 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("104.0"),  # 1.5 hours
+        inserted_at: ~U[2024-01-15 10:00:00Z]
+      })
+
+      # Create flight for second pilot
+      _flight3 = flight_fixture(%{
+        pilot_id: other_pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-20],
+        hobbs_reading: Decimal.new("106.2"),  # 2.2 hours
+        inserted_at: ~U[2024-01-20 10:00:00Z]
+      })
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      assert html =~ "Pilot Summary for January 2024"
+      assert html =~ "#{pilot.first_name} #{pilot.last_name}"
+      assert html =~ "#{other_pilot.first_name} #{other_pilot.last_name}"
+      assert html =~ "2 flights • 4.0 hours"  # First pilot: 2.5 + 1.5 = 4.0
+      assert html =~ "1 flights • 2.2 hours"  # Second pilot: 2.2
+    end
+
+        test "displays pilot cost breakdown when costs exist", %{conn: conn, pilot: pilot} do
+      import FlightLog.AccountsFixtures
+      import FlightLog.CostsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N66666", initial_hobbs_reading: Decimal.new("50.0")})
+      other_pilot = pilot_fixture(%{first_name: "Bob", last_name: "Wilson"})
+
+      # Create flights
+      _flight1 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-10],
+        hobbs_reading: Decimal.new("52.0"),  # 2.0 hours
+        inserted_at: ~U[2024-01-10 10:00:00Z]
+      })
+
+      _flight2 = flight_fixture(%{
+        pilot_id: other_pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("53.5"),  # 1.5 hours
+        inserted_at: ~U[2024-01-15 10:00:00Z]
+      })
+
+      # Create costs
+      _monthly_cost = cost_fixture(%{airplane: airplane, cost_type: :monthly, amount: "600.00",
+                                   description: "Insurance", effective_date: ~D[2024-01-01]})
+      _hourly_cost = cost_fixture(%{airplane: airplane, cost_type: :hourly, amount: "100.00",
+                                  description: "Fuel", effective_date: ~D[2024-01-01]})
+      _one_time_cost = cost_fixture(%{airplane: airplane, cost_type: :one_time, amount: "1000.00",
+                                    description: "Maintenance", effective_date: ~D[2024-01-05]})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # Check pilot cost breakdown appears
+      assert html =~ "Pilot Summary for January 2024"
+      assert html =~ "#{pilot.first_name} #{pilot.last_name}"
+      assert html =~ "#{other_pilot.first_name} #{other_pilot.last_name}"
+
+      # Check cost details for first pilot (2.0 hours)
+      # Hourly: 100 * 2.0 = 200, Monthly: 600, One-time: 1000, Total: 1800
+      assert html =~ "Hourly costs (2.0 hrs)"
+      assert html =~ "$200.00"
+      assert html =~ "Monthly costs"
+      assert html =~ "$600.00"
+      assert html =~ "One-time costs"
+      assert html =~ "$1000.00"
+      assert html =~ "Total cost"
+      assert html =~ "$1800.00"
+
+      # Check cost details for second pilot (1.5 hours)
+      # Hourly: 100 * 1.5 = 150, Monthly: 600, One-time: 1000, Total: 1750
+      assert html =~ "Hourly costs (1.5 hrs)"
+      assert html =~ "$150.00"
+      assert html =~ "$1750.00"
+    end
+
+    test "does not display pilot summary when no flights exist", %{conn: conn} do
+      airplane = airplane_fixture(%{tail_number: "N77777"})
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      refute html =~ "Pilot Summary"
     end
   end
 end

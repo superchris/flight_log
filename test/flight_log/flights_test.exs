@@ -65,6 +65,141 @@ defmodule FlightLog.FlightsTest do
     end
   end
 
+  describe "list_flights_for_airplane_month/2" do
+    import FlightLog.FlightsFixtures
+    import FlightLog.AccountsFixtures
+    import FlightLog.AirplanesFixtures
+
+    test "returns flights for specific airplane and month from all pilots" do
+      pilot1 = pilot_fixture()
+      pilot2 = pilot_fixture()
+      airplane = airplane_fixture()
+      date = ~D[2024-01-15]
+
+      # Create flights for different pilots in the same month
+      flight1 = flight_fixture(%{
+        pilot_id: pilot1.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-10]
+      })
+
+      flight2 = flight_fixture(%{
+        pilot_id: pilot2.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-20]
+      })
+
+      # Create flight in different month (should not appear)
+      _flight_different_month = flight_fixture(%{
+        pilot_id: pilot1.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-02-15]
+      })
+
+      # Create flight for different airplane (should not appear)
+      other_airplane = airplane_fixture()
+      _flight_different_airplane = flight_fixture(%{
+        pilot_id: pilot1.id,
+        airplane_id: other_airplane.id,
+        flight_date: ~D[2024-01-25]
+      })
+
+      flights = Flights.list_flights_for_airplane_month(airplane.id, date)
+
+      assert length(flights) == 2
+      flight_ids = Enum.map(flights, & &1.id)
+      assert flight1.id in flight_ids
+      assert flight2.id in flight_ids
+
+      # Verify flights are preloaded with pilot and airplane
+      assert Enum.all?(flights, &Ecto.assoc_loaded?(&1.pilot))
+      assert Enum.all?(flights, &Ecto.assoc_loaded?(&1.airplane))
+    end
+
+    test "returns empty list when no flights exist for airplane and month" do
+      airplane = airplane_fixture()
+      date = ~D[2024-01-15]
+
+      flights = Flights.list_flights_for_airplane_month(airplane.id, date)
+      assert flights == []
+    end
+
+    test "filters correctly by month boundaries" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture()
+
+      # Flight at beginning of month
+      flight1 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-01]
+      })
+
+      # Flight at end of month
+      flight2 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-31]
+      })
+
+      # Flight just before month
+      _flight_before = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2023-12-31]
+      })
+
+      # Flight just after month
+      _flight_after = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-02-01]
+      })
+
+      flights = Flights.list_flights_for_airplane_month(airplane.id, ~D[2024-01-15])
+
+      assert length(flights) == 2
+      flight_ids = Enum.map(flights, & &1.id)
+      assert flight1.id in flight_ids
+      assert flight2.id in flight_ids
+    end
+
+    test "orders flights by date descending, then by inserted_at descending" do
+      pilot1 = pilot_fixture()
+      pilot2 = pilot_fixture()
+      airplane = airplane_fixture()
+
+      # Create flights in mixed order
+      flight_middle = flight_fixture(%{
+        pilot_id: pilot1.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        inserted_at: ~U[2024-01-15 10:00:00Z]
+      })
+
+      flight_latest = flight_fixture(%{
+        pilot_id: pilot2.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-20],
+        inserted_at: ~U[2024-01-20 14:00:00Z]
+      })
+
+      flight_earliest = flight_fixture(%{
+        pilot_id: pilot1.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-10],
+        inserted_at: ~U[2024-01-10 09:00:00Z]
+      })
+
+      flights = Flights.list_flights_for_airplane_month(airplane.id, ~D[2024-01-15])
+
+      assert length(flights) == 3
+      assert Enum.at(flights, 0).id == flight_latest.id
+      assert Enum.at(flights, 1).id == flight_middle.id
+      assert Enum.at(flights, 2).id == flight_earliest.id
+    end
+  end
+
       describe "add_flight_hours/1" do
     import FlightLog.FlightsFixtures
     import FlightLog.AccountsFixtures

@@ -1,6 +1,6 @@
 <div class="mx-auto max-w-4xl">
   <.header>
-    Flights for {@airplane.tail_number}
+    All Flights for {@airplane.tail_number}
     <:subtitle>
       {@airplane.make} {@airplane.model} - {format_month(@current_date)}
     </:subtitle>
@@ -36,7 +36,7 @@
       </p>
       <div class="mt-6">
         <.link navigate={~p"/flights/#{@airplane.tail_number}/new"}>
-          <.button>Log Your First Flight</.button>
+          <.button>Log New Flight</.button>
         </.link>
       </div>
     </div>
@@ -54,6 +54,9 @@
                   <div class="ml-4">
                     <p class="text-sm font-medium text-gray-900">
                       {format_date(flight.flight_date)}
+                    </p>
+                    <p class="text-sm font-semibold text-indigo-600">
+                      Pilot: {flight.pilot.first_name} {flight.pilot.last_name}
                     </p>
                     <p class="text-sm text-gray-500">
                       Hobbs: {flight.hobbs_reading} hours
@@ -94,6 +97,59 @@
         </span>
       </div>
     </div>
+
+    <!-- Pilot Summary -->
+    <%= if length(@flights) > 0 do %>
+      <div class="mt-6 bg-white shadow overflow-hidden sm:rounded-md">
+        <div class="px-4 py-3 bg-gray-50 border-b border-gray-200">
+          <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Pilot Summary for {format_month(@current_date)}
+          </h3>
+        </div>
+        <div class="px-6 py-4">
+          <div class="space-y-4">
+            <%= for {pilot_name, pilot_flights} <- group_flights_by_pilot(@flights) do %>
+              <% pilot_hours = calculate_total_flight_hours(pilot_flights) %>
+              <% pilot_costs = calculate_pilot_costs(@costs, pilot_hours) %>
+              <div class="border-b border-gray-200 pb-4 last:border-b-0">
+                <div class="flex justify-between items-center mb-2">
+                  <span class="text-sm font-medium text-gray-900">{pilot_name}</span>
+                  <div class="text-sm text-gray-500">
+                    {length(pilot_flights)} flights • {Decimal.round(pilot_hours, 1)} hours
+                  </div>
+                </div>
+                
+                <!-- Pilot Cost Breakdown -->
+                <div class="ml-4 space-y-1 text-xs">
+                  <%= if not Decimal.equal?(pilot_costs.hourly_cost, Decimal.new("0")) do %>
+                    <div class="flex justify-between text-gray-600">
+                      <span>Hourly costs ({Decimal.round(pilot_hours, 1)} hrs)</span>
+                      <span>${Decimal.round(pilot_costs.hourly_cost, 2)}</span>
+                    </div>
+                  <% end %>
+                  <%= if not Decimal.equal?(pilot_costs.monthly_cost, Decimal.new("0")) do %>
+                    <div class="flex justify-between text-gray-600">
+                      <span>Monthly costs</span>
+                      <span>${Decimal.round(pilot_costs.monthly_cost, 2)}</span>
+                    </div>
+                  <% end %>
+                  <%= if not Decimal.equal?(pilot_costs.one_time_cost, Decimal.new("0")) do %>
+                    <div class="flex justify-between text-gray-600">
+                      <span>One-time costs</span>
+                      <span>${Decimal.round(pilot_costs.one_time_cost, 2)}</span>
+                    </div>
+                  <% end %>
+                  <div class="flex justify-between font-medium text-gray-900 border-t border-gray-200 pt-1">
+                    <span>Total cost</span>
+                    <span>${Decimal.round(pilot_costs.total_cost, 2)}</span>
+                  </div>
+                </div>
+              </div>
+            <% end %>
+          </div>
+        </div>
+      </div>
+    <% end %>
   <% end %>
 
   <!-- Costs Section -->
