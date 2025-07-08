@@ -12,9 +12,18 @@ defmodule FlightLog.FlightsTest do
 
     @invalid_attrs %{hobbs_reading: nil, flight_date: nil, pilot_id: nil, airplane_id: nil}
 
-    test "list_flights/0 returns all flights" do
+    test "list_flights/0 returns all flights with preloaded associations" do
       flight = flight_fixture()
-      assert Flights.list_flights() == [flight]
+      flights = Flights.list_flights()
+
+      assert length(flights) == 1
+      [loaded_flight] = flights
+
+      assert loaded_flight.id == flight.id
+      assert loaded_flight.flight_date == flight.flight_date
+      assert loaded_flight.hobbs_reading == flight.hobbs_reading
+      assert Ecto.assoc_loaded?(loaded_flight.pilot)
+      assert Ecto.assoc_loaded?(loaded_flight.airplane)
     end
 
     test "get_flight!/1 returns the flight with given id" do

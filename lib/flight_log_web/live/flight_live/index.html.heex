@@ -39,13 +39,18 @@
               <h3 class="text-lg font-semibold text-gray-900">
                 Flight on {flight.flight_date}
               </h3>
-              <p class="text-sm text-gray-600">
+              <div class="text-sm text-gray-600 space-y-1">
                 <%= if flight.airplane && Ecto.assoc_loaded?(flight.airplane) do %>
-                  {flight.airplane.tail_number} - {flight.airplane.make} {flight.airplane.model}
+                  <p>{flight.airplane.tail_number} - {flight.airplane.make} {flight.airplane.model}</p>
                 <% else %>
-                  Aircraft information not available
+                  <p>Aircraft information not available</p>
                 <% end %>
-              </p>
+                <%= if flight.pilot && Ecto.assoc_loaded?(flight.pilot) do %>
+                  <p class="text-indigo-600 font-medium">Pilot: {flight.pilot.first_name} {flight.pilot.last_name}</p>
+                <% else %>
+                  <p>Pilot information not available</p>
+                <% end %>
+              </div>
             </div>
           </div>
           

@@ -18,7 +18,11 @@ defmodule FlightLog.Flights do
 
   """
   def list_flights do
-    Repo.all(Flight)
+    from(f in Flight,
+      order_by: [desc: f.flight_date, desc: f.inserted_at],
+      preload: [:pilot, :airplane]
+    )
+    |> Repo.all()
   end
 
   @doc """

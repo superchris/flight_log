@@ -64,7 +64,7 @@ defmodule FlightLogWeb.Router do
 
     live_session :require_authenticated_pilot,
       on_mount: [{FlightLogWeb.PilotAuth, :ensure_authenticated}] do
-      get "/", PageController, :home
+      live "/", AirplaneLive.Index, :index
 
       live "/pilots/settings", PilotSettingsLive, :edit
       live "/pilots/settings/confirm_email/:token", PilotSettingsLive, :confirm_email
