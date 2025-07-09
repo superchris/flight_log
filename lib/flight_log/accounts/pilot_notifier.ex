@@ -5,10 +5,13 @@ defmodule FlightLog.Accounts.PilotNotifier do
 
   # Delivers the email using the application mailer.
   defp deliver(recipient, subject, body) do
+    from_email = System.get_env("FROM_EMAIL") || "noreply@example.com"
+    from_name = System.get_env("FROM_NAME") || "FlightLog"
+
     email =
       new()
       |> to(recipient)
-      |> from({"FlightLog", "contact@example.com"})
+      |> from({from_name, from_email})
       |> subject(subject)
       |> text_body(body)
 
