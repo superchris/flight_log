@@ -47,7 +47,7 @@ defmodule FlightLogWeb.PilotConfirmationLiveTest do
         lv
         |> form("#confirmation_form")
         |> render_submit()
-        |> follow_redirect(conn, "/")
+        |> follow_redirect(conn, "/pilots/log_in")
 
       assert {:ok, conn} = result
 
@@ -78,7 +78,7 @@ defmodule FlightLogWeb.PilotConfirmationLiveTest do
         lv
         |> form("#confirmation_form")
         |> render_submit()
-        |> follow_redirect(conn, ~p"/")
+        |> follow_redirect(conn, ~p"/pilots/log_in")
 
       assert Phoenix.Flash.get(conn.assigns.flash, :error) =~
                "Pilot confirmation link is invalid or it has expired"

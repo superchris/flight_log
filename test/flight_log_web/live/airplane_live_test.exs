@@ -9,7 +9,7 @@ defmodule FlightLogWeb.AirplaneLiveTest do
   @invalid_attrs %{year: nil, make: nil, tail_number: nil, initial_hobbs_reading: nil, model: nil}
 
   describe "Index" do
-    setup [:create_airplane]
+    setup [:create_airplane, :register_and_log_in_pilot]
 
     test "lists all airplanes", %{conn: conn, airplane: airplane} do
       {:ok, _index_live, html} = live(conn, ~p"/airplanes")
@@ -73,7 +73,7 @@ defmodule FlightLogWeb.AirplaneLiveTest do
   end
 
   describe "Show" do
-    setup [:create_airplane]
+    setup [:create_airplane, :register_and_log_in_pilot]
 
     test "displays airplane", %{conn: conn, airplane: airplane} do
       {:ok, _show_live, html} = live(conn, ~p"/airplanes/#{airplane}")

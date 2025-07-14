@@ -20,7 +20,7 @@ defmodule FlightLogWeb.PilotSessionControllerTest do
       # Now do a logged in request and assert on the menu
       conn = get(conn, ~p"/")
       response = html_response(conn, 200)
-      assert response =~ pilot.email
+      assert response =~ "Welcome, John"  # The layout shows first_name, not email
       assert response =~ ~p"/pilots/settings"
       assert response =~ ~p"/pilots/log_out"
     end

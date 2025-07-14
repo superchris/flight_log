@@ -25,7 +25,7 @@ defmodule FlightLogWeb.FlightLiveTest do
   end
 
   describe "Index" do
-    setup [:create_flight, :create_test_data]
+    setup [:create_flight, :create_test_data, :register_and_log_in_pilot]
 
     test "lists all flights", %{conn: conn} do
       {:ok, _index_live, html} = live(conn, ~p"/flights")
@@ -86,7 +86,7 @@ defmodule FlightLogWeb.FlightLiveTest do
   end
 
   describe "Show" do
-    setup [:create_flight, :create_test_data]
+    setup [:create_flight, :create_test_data, :register_and_log_in_pilot]
 
     test "displays flight", %{conn: conn, flight: flight} do
       {:ok, _show_live, html} = live(conn, ~p"/flights/#{flight}")
