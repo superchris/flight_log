@@ -12,6 +12,7 @@ defmodule FlightLog.Accounts.PilotToken do
   @confirm_validity_in_days 7
   @change_email_validity_in_days 7
   @session_validity_in_days 60
+  @magic_link_validity_in_minutes 15
 
   schema "pilots_tokens" do
     field :token, :binary
@@ -128,6 +129,35 @@ defmodule FlightLog.Accounts.PilotToken do
 
   defp days_for_context("confirm"), do: @confirm_validity_in_days
   defp days_for_context("reset_password"), do: @reset_password_validity_in_days
+
+  @doc """
+  Checks if the magic link token is valid and returns its underlying lookup query.
+
+  The query returns the pilot found by the token, if any.
+
+  The given token is valid if it matches its hashed counterpart in the
+  database and the user email has not changed. Magic link tokens expire
+  after @magic_link_validity_in_minutes.
+  """
+  def verify_magic_link_token_query(token) do
+    case Base.url_decode64(token, padding: false) do
+      {:ok, decoded_token} ->
+        hashed_token = :crypto.hash(@hash_algorithm, decoded_token)
+
+        query =
+          from token in by_token_and_context_query(hashed_token, "magic_link"),
+            join: pilot in assoc(token, :pilot),
+            where:
+              token.inserted_at > ago(@magic_link_validity_in_minutes, "minute") and
+                token.sent_to == pilot.email,
+            select: pilot
+
+        {:ok, query}
+
+      :error ->
+        :error
+    end
+  end
 
   @doc """
   Checks if the token is valid and returns its underlying lookup query.

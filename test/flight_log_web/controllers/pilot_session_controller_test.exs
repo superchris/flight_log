@@ -110,4 +110,42 @@ defmodule FlightLogWeb.PilotSessionControllerTest do
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Logged out successfully"
     end
   end
+
+  describe "GET /pilots/log_in/:token (magic link)" do
+    test "logs the pilot in with valid magic link token", %{conn: conn, pilot: pilot} do
+      token =
+        extract_pilot_token(fn url ->
+          FlightLog.Accounts.deliver_pilot_magic_link_instructions(pilot, url)
+        end)
+
+      conn = get(conn, ~p"/pilots/log_in/#{token}")
+      assert get_session(conn, :pilot_token)
+      assert redirected_to(conn) == ~p"/"
+      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Welcome back!"
+    end
+
+    test "redirects to login page with invalid token", %{conn: conn} do
+      conn = get(conn, ~p"/pilots/log_in/invalid-token")
+      refute get_session(conn, :pilot_token)
+      assert redirected_to(conn) == ~p"/pilots/log_in"
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Magic link is invalid or has expired"
+    end
+
+    test "redirects to login page with expired token", %{conn: conn, pilot: pilot} do
+      token =
+        extract_pilot_token(fn url ->
+          FlightLog.Accounts.deliver_pilot_magic_link_instructions(pilot, url)
+        end)
+
+      # Expire the token
+      FlightLog.Repo.update_all(FlightLog.Accounts.PilotToken,
+        set: [inserted_at: ~N[2020-01-01 00:00:00]]
+      )
+
+      conn = get(conn, ~p"/pilots/log_in/#{token}")
+      refute get_session(conn, :pilot_token)
+      assert redirected_to(conn) == ~p"/pilots/log_in"
+      assert Phoenix.Flash.get(conn.assigns.flash, :error) =~ "Magic link is invalid or has expired"
+    end
+  end
 end

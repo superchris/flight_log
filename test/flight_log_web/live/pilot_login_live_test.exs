@@ -11,6 +11,7 @@ defmodule FlightLogWeb.PilotLoginLiveTest do
       assert html =~ "Log in"
       assert html =~ "Register"
       assert html =~ "Forgot your password?"
+      assert html =~ "Log in with email link"
     end
 
     test "redirects if already logged in", %{conn: conn} do
@@ -82,6 +83,18 @@ defmodule FlightLogWeb.PilotLoginLiveTest do
         |> follow_redirect(conn, ~p"/pilots/reset_password")
 
       assert conn.resp_body =~ "Forgot your password?"
+    end
+
+    test "redirects to magic link page when the email link button is clicked", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/pilots/log_in")
+
+      {:ok, _lv, html} =
+        lv
+        |> element(~s|main a:fl-contains("Log in with email link")|)
+        |> render_click()
+        |> follow_redirect(conn, ~p"/pilots/magic_link")
+
+      assert html =~ "Log in with email"
     end
   end
 end

@@ -363,4 +363,38 @@ defmodule FlightLog.Accounts do
       {:error, :pilot, changeset, _} -> {:error, changeset}
     end
   end
+
+  ## Magic Link
+
+  @doc ~S"""
+  Delivers a magic link login email to the given pilot.
+
+  ## Examples
+
+      iex> deliver_pilot_magic_link_instructions(pilot, &url(~p"/pilots/log_in/#{&1}"))
+      {:ok, %{to: ..., body: ...}}
+
+  """
+  def deliver_pilot_magic_link_instructions(%Pilot{} = pilot, magic_link_url_fun)
+      when is_function(magic_link_url_fun, 1) do
+    {encoded_token, pilot_token} = PilotToken.build_email_token(pilot, "magic_link")
+    Repo.insert!(pilot_token)
+    PilotNotifier.deliver_magic_link_instructions(pilot, magic_link_url_fun.(encoded_token))
+  end
+
+  @doc """
+  Logs in a pilot via magic link token.
+
+  If the token matches, the pilot is returned and the token is deleted.
+  """
+  def get_pilot_by_magic_link_token(token) do
+    with {:ok, query} <- PilotToken.verify_magic_link_token_query(token),
+         %Pilot{} = pilot <- Repo.one(query) do
+      # Delete all magic link tokens for this pilot to prevent reuse
+      Repo.delete_all(PilotToken.by_pilot_and_contexts_query(pilot, ["magic_link"]))
+      {:ok, pilot}
+    else
+      _ -> :error
+    end
+  end
 end

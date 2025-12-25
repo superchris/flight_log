@@ -52,11 +52,13 @@ defmodule FlightLogWeb.Router do
       on_mount: [{FlightLogWeb.PilotAuth, :redirect_if_pilot_is_authenticated}] do
       live "/pilots/register", PilotRegistrationLive, :new
       live "/pilots/log_in", PilotLoginLive, :new
+      live "/pilots/magic_link", PilotMagicLinkLive, :new
       live "/pilots/reset_password", PilotForgotPasswordLive, :new
       live "/pilots/reset_password/:token", PilotResetPasswordLive, :edit
     end
 
     post "/pilots/log_in", PilotSessionController, :create
+    get "/pilots/log_in/:token", PilotSessionController, :magic_link
   end
 
   scope "/", FlightLogWeb do

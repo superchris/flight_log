@@ -79,4 +79,26 @@ defmodule FlightLog.Accounts.PilotNotifier do
     ==============================
     """)
   end
+
+  @doc """
+  Deliver magic link login instructions.
+  """
+  def deliver_magic_link_instructions(pilot, url) do
+    deliver(pilot.email, "Log in to FlightLog", """
+
+    ==============================
+
+    Hi #{pilot.email},
+
+    You can log in to your account by visiting the URL below:
+
+    #{url}
+
+    This link will expire in 15 minutes.
+
+    If you didn't request this link, please ignore this email.
+
+    ==============================
+    """)
+  end
 end

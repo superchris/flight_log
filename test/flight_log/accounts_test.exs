@@ -507,4 +507,54 @@ defmodule FlightLog.AccountsTest do
       refute inspect(%Pilot{password: "123456"}) =~ "password: \"123456\""
     end
   end
+
+  describe "deliver_pilot_magic_link_instructions/2" do
+    setup do
+      %{pilot: pilot_fixture()}
+    end
+
+    test "sends token through notification", %{pilot: pilot} do
+      token =
+        extract_pilot_token(fn url ->
+          Accounts.deliver_pilot_magic_link_instructions(pilot, url)
+        end)
+
+      {:ok, token} = Base.url_decode64(token, padding: false)
+      assert pilot_token = Repo.get_by(PilotToken, token: :crypto.hash(:sha256, token))
+      assert pilot_token.pilot_id == pilot.id
+      assert pilot_token.sent_to == pilot.email
+      assert pilot_token.context == "magic_link"
+    end
+  end
+
+  describe "get_pilot_by_magic_link_token/1" do
+    setup do
+      pilot = pilot_fixture()
+
+      token =
+        extract_pilot_token(fn url ->
+          Accounts.deliver_pilot_magic_link_instructions(pilot, url)
+        end)
+
+      %{pilot: pilot, token: token}
+    end
+
+    test "returns the pilot with valid token", %{pilot: %{id: id}, token: token} do
+      assert {:ok, %Pilot{id: ^id}} = Accounts.get_pilot_by_magic_link_token(token)
+    end
+
+    test "deletes magic link tokens after use", %{pilot: pilot, token: token} do
+      assert {:ok, _pilot} = Accounts.get_pilot_by_magic_link_token(token)
+      refute Repo.get_by(PilotToken, pilot_id: pilot.id, context: "magic_link")
+    end
+
+    test "does not return the pilot with invalid token" do
+      assert Accounts.get_pilot_by_magic_link_token("oops") == :error
+    end
+
+    test "does not return the pilot if token expired", %{token: token} do
+      {1, nil} = Repo.update_all(PilotToken, set: [inserted_at: ~N[2020-01-01 00:00:00]])
+      assert Accounts.get_pilot_by_magic_link_token(token) == :error
+    end
+  end
 end

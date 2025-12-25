@@ -39,4 +39,18 @@ defmodule FlightLogWeb.PilotSessionController do
     |> put_flash(:info, "Logged out successfully.")
     |> PilotAuth.log_out_pilot()
   end
+
+  def magic_link(conn, %{"token" => token}) do
+    case Accounts.get_pilot_by_magic_link_token(token) do
+      {:ok, pilot} ->
+        conn
+        |> put_flash(:info, "Welcome back!")
+        |> PilotAuth.log_in_pilot(pilot)
+
+      :error ->
+        conn
+        |> put_flash(:error, "Magic link is invalid or has expired.")
+        |> redirect(to: ~p"/pilots/log_in")
+    end
+  end
 end
