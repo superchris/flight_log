@@ -9,6 +9,7 @@ defmodule FlightLog.Airplanes.Airplane do
     field :initial_hobbs_reading, :decimal
     field :model, :string
 
+    belongs_to :pilot, FlightLog.Accounts.Pilot
     has_many :flights, FlightLog.Flights.Flight
     has_many :costs, FlightLog.Costs.Cost
 
@@ -18,7 +19,8 @@ defmodule FlightLog.Airplanes.Airplane do
   @doc false
   def changeset(airplane, attrs) do
     airplane
-    |> cast(attrs, [:tail_number, :initial_hobbs_reading, :model, :make, :year])
+    |> cast(attrs, [:tail_number, :initial_hobbs_reading, :model, :make, :year, :pilot_id])
     |> validate_required([:tail_number, :initial_hobbs_reading, :model, :make, :year])
+    |> foreign_key_constraint(:pilot_id)
   end
 end

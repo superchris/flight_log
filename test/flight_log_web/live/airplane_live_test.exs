@@ -41,6 +41,32 @@ defmodule FlightLogWeb.AirplaneLiveTest do
       assert html =~ "some make"
     end
 
+    test "associates airplane with logged-in pilot when creating", %{conn: conn, pilot: pilot} do
+      {:ok, index_live, _html} = live(conn, ~p"/airplanes")
+
+      assert index_live |> element("a", "Add Aircraft") |> render_click() =~
+               "New Airplane"
+
+      assert_patch(index_live, ~p"/airplanes/new")
+
+      unique_tail_number = "N#{System.unique_integer([:positive])}"
+      create_attrs_with_unique_tail = Map.put(@create_attrs, :tail_number, unique_tail_number)
+
+      assert index_live
+             |> form("#airplane-form", airplane: create_attrs_with_unique_tail)
+             |> render_submit()
+
+      assert_patch(index_live, ~p"/airplanes")
+
+      html = render(index_live)
+      assert html =~ "Airplane created successfully"
+      assert html =~ "some make"
+
+      # Verify the airplane was associated with the logged-in pilot
+      {:ok, airplane} = FlightLog.Airplanes.get_airplane_by_tail_number(unique_tail_number)
+      assert airplane.pilot_id == pilot.id
+    end
+
     test "updates airplane in listing", %{conn: conn, airplane: airplane} do
       {:ok, index_live, _html} = live(conn, ~p"/airplanes")
 

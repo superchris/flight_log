@@ -4,10 +4,14 @@ defmodule FlightLog.AirplanesFixtures do
   entities via the `FlightLog.Airplanes` context.
   """
 
+  import FlightLog.AccountsFixtures
+
   @doc """
   Generate a airplane.
   """
   def airplane_fixture(attrs \\ %{}) do
+    pilot = pilot_fixture()
+
     {:ok, airplane} =
       attrs
       |> Enum.into(%{
@@ -15,7 +19,8 @@ defmodule FlightLog.AirplanesFixtures do
         make: "some make",
         model: "some model",
         tail_number: "some tail_number",
-        year: 42
+        year: 42,
+        pilot_id: pilot.id
       })
       |> FlightLog.Airplanes.create_airplane()
 

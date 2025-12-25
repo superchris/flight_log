@@ -12,6 +12,7 @@ defmodule FlightLog.Accounts.Pilot do
     field :last_name, :string
 
     has_many :flights, FlightLog.Flights.Flight
+    has_many :airplanes, FlightLog.Airplanes.Airplane
 
     timestamps(type: :utc_datetime)
   end
