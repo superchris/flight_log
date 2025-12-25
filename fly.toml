@@ -13,7 +13,7 @@ kill_signal = 'SIGTERM'
   release_command = '/app/bin/migrate'
 
 [env]
-  PHX_HOST = 'flight-log-bold-haze-8849.fly.dev'
+  PHX_HOST = 'share-a-plane.com'
   PORT = '8080'
 
 [http_service]
