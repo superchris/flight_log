@@ -14,18 +14,26 @@ defmodule FlightLogWeb.AirplaneLive.Show do
 
   @impl true
   def handle_params(%{"id" => id} = params, _, socket) do
-    airplane = Airplanes.get_airplane!(id) |> Repo.preload(:pilots)
-    costs = Costs.list_costs_for_airplane(airplane.id)
-    all_pilots = Accounts.list_pilots()
-    available_pilots = Enum.reject(all_pilots, fn p -> p.id in Enum.map(airplane.pilots, & &1.id) end)
+    case Airplanes.get_airplane_for_pilot(id, socket.assigns.current_pilot) do
+      {:ok, airplane} ->
+        costs = Costs.list_costs_for_airplane(airplane.id)
+        all_pilots = Accounts.list_pilots()
+        available_pilots = Enum.reject(all_pilots, fn p -> p.id in Enum.map(airplane.pilots, & &1.id) end)
 
-    {:noreply,
-     socket
-     |> assign(:page_title, page_title(socket.assigns.live_action))
-     |> assign(:airplane, airplane)
-     |> assign(:costs, costs)
-     |> assign(:available_pilots, available_pilots)
-     |> apply_action(socket.assigns.live_action, params)}
+        {:noreply,
+         socket
+         |> assign(:page_title, page_title(socket.assigns.live_action))
+         |> assign(:airplane, airplane)
+         |> assign(:costs, costs)
+         |> assign(:available_pilots, available_pilots)
+         |> apply_action(socket.assigns.live_action, params)}
+
+      {:error, _} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "You are not authorized to view this airplane")
+         |> push_navigate(to: ~p"/airplanes")}
+    end
   end
 
   defp apply_action(socket, :show, _params) do

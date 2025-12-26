@@ -39,10 +39,15 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
 
   setup :register_and_log_in_pilot
 
-  describe "New Cost" do
-    test "renders new cost form", %{conn: conn} do
-      airplane = airplane_fixture()
+  defp create_airplane_for_pilot(%{pilot: pilot}) do
+    airplane = airplane_fixture(%{pilot: pilot})
+    %{airplane: airplane}
+  end
 
+  describe "New Cost" do
+    setup [:create_airplane_for_pilot]
+
+    test "renders new cost form", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -57,9 +62,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert render(show_live) =~ "Effective Date"
     end
 
-    test "saves new cost with valid data", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "saves new cost with valid data", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -80,9 +83,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "Monthly insurance premium"
     end
 
-    test "shows validation errors for invalid data", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "shows validation errors for invalid data", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -101,9 +102,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert render(show_live) =~ "can&#39;t be blank"
     end
 
-        test "validates cost type selection", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "validates cost type selection", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -117,9 +116,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
              |> render_change() =~ "can&#39;t be blank"
     end
 
-    test "validates positive amount", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "validates positive amount", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -132,9 +129,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
              |> render_change() =~ "must be greater than 0"
     end
 
-    test "validates zero amount", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "validates zero amount", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -147,9 +142,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
              |> render_change() =~ "must be greater than 0"
     end
 
-    test "allows optional description", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "allows optional description", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -170,9 +163,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "—"  # Empty description placeholder
     end
 
-    test "saves new cost with effective date", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "saves new cost with effective date", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -194,9 +185,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "06/15/2024"  # Effective date display
     end
 
-    test "allows optional effective date", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "allows optional effective date", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -221,8 +210,9 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
   end
 
   describe "Edit Cost" do
-    test "renders edit cost form", %{conn: conn} do
-      airplane = airplane_fixture()
+    setup [:create_airplane_for_pilot]
+
+    test "renders edit cost form", %{conn: conn, airplane: airplane} do
       cost = cost_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
@@ -236,8 +226,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert render(show_live) =~ cost.description
     end
 
-    test "updates cost with valid data", %{conn: conn} do
-      airplane = airplane_fixture()
+    test "updates cost with valid data", %{conn: conn, airplane: airplane} do
       cost = cost_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
@@ -260,8 +249,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "Updated fuel cost"
     end
 
-    test "shows validation errors for invalid data", %{conn: conn} do
-      airplane = airplane_fixture()
+    test "shows validation errors for invalid data", %{conn: conn, airplane: airplane} do
       cost = cost_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
@@ -280,8 +268,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert render(show_live) =~ "can&#39;t be blank"
     end
 
-    test "updates cost with effective date", %{conn: conn} do
-      airplane = airplane_fixture()
+    test "updates cost with effective date", %{conn: conn, airplane: airplane} do
       cost = cost_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
@@ -305,8 +292,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "03/20/2024"  # Effective date display
     end
 
-    test "can clear effective date when editing", %{conn: conn} do
-      airplane = airplane_fixture()
+    test "can clear effective date when editing", %{conn: conn, airplane: airplane} do
       cost = cost_with_effective_date_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
@@ -334,9 +320,9 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
   end
 
   describe "Form Interaction" do
-    test "cost type select has all valid options", %{conn: conn} do
-      airplane = airplane_fixture()
+    setup [:create_airplane_for_pilot]
 
+    test "cost type select has all valid options", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -348,9 +334,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "One Time"
     end
 
-    test "form validation triggers on change", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "form validation triggers on change", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -367,9 +351,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
              |> render_change() =~ "must be greater than 0"
     end
 
-            test "displays modal with form elements when adding cost", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "displays modal with form elements when adding cost", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -384,9 +366,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "Save Cost"
     end
 
-    test "form validation works with effective date", %{conn: conn} do
-      airplane = airplane_fixture()
-
+    test "form validation works with effective date", %{conn: conn, airplane: airplane} do
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
 
       assert show_live |> element("a", "Add Cost") |> render_click() =~
@@ -404,14 +384,15 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
              |> form("#cost-form", cost: valid_attrs_with_date)
              |> render_change()
 
-             # Form should not show validation errors
-       refute render(show_live) =~ "can&#39;t be blank"
+      # Form should not show validation errors
+      refute render(show_live) =~ "can&#39;t be blank"
     end
   end
 
   describe "Effective Date Display" do
-    test "displays effective date in costs table when present", %{conn: conn} do
-      airplane = airplane_fixture()
+    setup [:create_airplane_for_pilot]
+
+    test "displays effective date in costs table when present", %{conn: conn, airplane: airplane} do
       _cost = cost_with_effective_date_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")
@@ -421,8 +402,7 @@ defmodule FlightLogWeb.AirplaneLive.CostFormComponentTest do
       assert html =~ "Effective Date"  # Column header
     end
 
-    test "displays dash when effective date is not present", %{conn: conn} do
-      airplane = airplane_fixture()
+    test "displays dash when effective date is not present", %{conn: conn, airplane: airplane} do
       _cost = cost_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane.id}")

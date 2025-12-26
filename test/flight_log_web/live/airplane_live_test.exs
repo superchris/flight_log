@@ -9,14 +9,28 @@ defmodule FlightLogWeb.AirplaneLiveTest do
   @update_attrs %{year: 43, make: "some updated make", tail_number: "some updated tail_number", initial_hobbs_reading: "456.7", model: "some updated model"}
   @invalid_attrs %{year: nil, make: nil, tail_number: nil, initial_hobbs_reading: nil, model: nil}
 
-  describe "Index" do
-    setup [:create_airplane, :register_and_log_in_pilot]
+  defp create_airplane_for_pilot(%{pilot: pilot}) do
+    airplane = airplane_fixture(%{pilot: pilot})
+    %{airplane: airplane}
+  end
 
-    test "lists all airplanes", %{conn: conn, airplane: airplane} do
+  describe "Index" do
+    setup [:register_and_log_in_pilot, :create_airplane_for_pilot]
+
+    test "lists all airplanes for logged-in pilot", %{conn: conn, airplane: airplane} do
       {:ok, _index_live, html} = live(conn, ~p"/airplanes")
 
       assert html =~ "Listing Airplanes"
       assert html =~ airplane.make
+    end
+
+    test "does not list airplanes the pilot is not associated with", %{conn: conn} do
+      other_pilot = pilot_fixture()
+      other_airplane = airplane_fixture(%{pilot: other_pilot, make: "Other Make"})
+
+      {:ok, _index_live, html} = live(conn, ~p"/airplanes")
+
+      refute html =~ other_airplane.make
     end
 
     test "saves new airplane", %{conn: conn} do
@@ -98,10 +112,21 @@ defmodule FlightLogWeb.AirplaneLiveTest do
       assert index_live |> element("#airplanes-#{airplane.id} a", "Delete") |> render_click()
       refute has_element?(index_live, "#airplanes-#{airplane.id}")
     end
+
+    test "cannot edit airplane not associated with pilot", %{conn: conn} do
+      other_pilot = pilot_fixture()
+      other_airplane = airplane_fixture(%{pilot: other_pilot})
+
+      # Navigate directly to the edit URL - should redirect with error
+      {:error, {:live_redirect, %{to: "/airplanes", flash: flash}}} =
+        live(conn, ~p"/airplanes/#{other_airplane}/edit")
+
+      assert flash["error"] == "You are not authorized to edit this airplane"
+    end
   end
 
   describe "Show" do
-    setup [:create_airplane, :register_and_log_in_pilot]
+    setup [:register_and_log_in_pilot, :create_airplane_for_pilot]
 
     test "displays airplane", %{conn: conn, airplane: airplane} do
       {:ok, _show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
@@ -141,9 +166,9 @@ defmodule FlightLogWeb.AirplaneLiveTest do
       assert html =~ "No costs have been added yet"
     end
 
-    test "displays existing costs", %{conn: conn} do
+    test "displays existing costs", %{conn: conn, pilot: pilot} do
       import FlightLog.CostsFixtures
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{pilot: pilot})
       cost = cost_fixture(airplane: airplane)
 
       {:ok, _show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
@@ -154,9 +179,9 @@ defmodule FlightLogWeb.AirplaneLiveTest do
       assert html =~ cost.description
     end
 
-    test "can delete cost", %{conn: conn} do
+    test "can delete cost", %{conn: conn, pilot: pilot} do
       import FlightLog.CostsFixtures
-      airplane = airplane_fixture()
+      airplane = airplane_fixture(%{pilot: pilot})
       cost = cost_fixture(airplane: airplane)
 
       {:ok, show_live, _html} = live(conn, ~p"/airplanes/#{airplane}")
@@ -228,6 +253,17 @@ defmodule FlightLogWeb.AirplaneLiveTest do
       assert html =~ "<option value=\"#{pilot2.id}\">"
       # pilot1 should not be in the dropdown
       refute html =~ "<option value=\"#{pilot1.id}\">"
+    end
+
+    test "cannot view airplane not associated with pilot", %{conn: conn} do
+      other_pilot = pilot_fixture()
+      other_airplane = airplane_fixture(%{pilot: other_pilot})
+
+      # Should be redirected with an error
+      {:error, {:live_redirect, %{to: "/airplanes", flash: flash}}} =
+        live(conn, ~p"/airplanes/#{other_airplane}")
+
+      assert flash["error"] == "You are not authorized to view this airplane"
     end
   end
 end

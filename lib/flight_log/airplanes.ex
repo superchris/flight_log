@@ -173,4 +173,32 @@ defmodule FlightLog.Airplanes do
     |> Repo.preload(:airplanes)
     |> Map.get(:airplanes)
   end
+
+  @doc """
+  Gets a single airplane if the pilot is authorized to access it.
+
+  Returns `{:ok, airplane}` if the pilot is associated with the airplane,
+  or `{:error, :not_authorized}` if not.
+
+  ## Examples
+
+      iex> get_airplane_for_pilot(123, pilot)
+      {:ok, %Airplane{}}
+
+      iex> get_airplane_for_pilot(456, pilot)
+      {:error, :not_authorized}
+
+  """
+  def get_airplane_for_pilot(id, %FlightLog.Accounts.Pilot{} = pilot) do
+    airplane = Repo.get(Airplane, id)
+
+    with %Airplane{} <- airplane,
+         airplane <- Repo.preload(airplane, :pilots),
+         true <- Enum.any?(airplane.pilots, &(&1.id == pilot.id)) do
+      {:ok, airplane}
+    else
+      nil -> {:error, :not_found}
+      false -> {:error, :not_authorized}
+    end
+  end
 end

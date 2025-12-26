@@ -149,5 +149,27 @@ defmodule FlightLog.AirplanesTest do
       assert airplane1.id in airplane_ids
       assert airplane2.id in airplane_ids
     end
+
+    test "get_airplane_for_pilot/2 returns {:ok, airplane} when pilot is associated" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+
+      assert {:ok, returned_airplane} = Airplanes.get_airplane_for_pilot(airplane.id, pilot)
+      assert returned_airplane.id == airplane.id
+    end
+
+    test "get_airplane_for_pilot/2 returns {:error, :not_authorized} when pilot is not associated" do
+      pilot = pilot_fixture()
+      other_pilot = pilot_fixture()
+      airplane = airplane_fixture(%{pilot: other_pilot, tail_number: "N12345"})
+
+      assert {:error, :not_authorized} = Airplanes.get_airplane_for_pilot(airplane.id, pilot)
+    end
+
+    test "get_airplane_for_pilot/2 returns {:error, :not_found} when airplane does not exist" do
+      pilot = pilot_fixture()
+
+      assert {:error, :not_found} = Airplanes.get_airplane_for_pilot(-1, pilot)
+    end
   end
 end
