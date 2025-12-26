@@ -29,7 +29,10 @@ config :flight_log, FlightLogWeb.Endpoint,
 #
 # For production it's recommended to configure a different adapter
 # at the `config/runtime.exs`.
-config :flight_log, FlightLog.Mailer, adapter: Swoosh.Adapters.Local
+config :flight_log, FlightLog.Mailer,
+  adapter: Swoosh.Adapters.Local,
+  from_email: "noreply@example.com",
+  from_name: "FlightLog"
 
 # Configure esbuild (the version is required)
 config :esbuild,

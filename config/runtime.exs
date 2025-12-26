@@ -106,7 +106,9 @@ if config_env() == :prod do
   config :flight_log, FlightLog.Mailer,
     adapter: Swoosh.Adapters.Mailgun,
     api_key: System.get_env("MAILGUN_API_KEY"),
-    domain: System.get_env("MAILGUN_DOMAIN")
+    domain: System.get_env("MAILGUN_DOMAIN"),
+    from_email: System.get_env("FROM_EMAIL") || "noreply@example.com",
+    from_name: System.get_env("FROM_NAME") || "FlightLog"
 
   # For this example you need include a HTTP client required by Swoosh API client.
   # Swoosh supports Hackney and Finch out of the box:

@@ -5,8 +5,9 @@ defmodule FlightLog.Accounts.PilotNotifier do
 
   # Delivers the email using the application mailer.
   defp deliver(recipient, subject, body) do
-    from_email = System.get_env("FROM_EMAIL") || "noreply@example.com"
-    from_name = System.get_env("FROM_NAME") || "FlightLog"
+    mailer_config = Application.get_env(:flight_log, FlightLog.Mailer)
+    from_email = Keyword.get(mailer_config, :from_email, "noreply@example.com")
+    from_name = Keyword.get(mailer_config, :from_name, "FlightLog")
 
     email =
       new()
