@@ -14,6 +14,8 @@ kill_signal = 'SIGTERM'
 
 [env]
   PHX_HOST = 'share-a-plane.com'
+  FROM_EMAIL = 'support@share-a-plane.com'
+  FROM_NAME = 'Share-A-Plane Support'
   PORT = '8080'
 
 [http_service]
