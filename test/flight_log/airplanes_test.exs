@@ -43,8 +43,7 @@ defmodule FlightLog.AirplanesTest do
     end
 
     test "create_airplane/1 with valid data creates a airplane" do
-      pilot = pilot_fixture()
-      valid_attrs = %{year: 42, make: "some make", tail_number: "some tail_number", initial_hobbs_reading: "120.5", model: "some model", pilot_id: pilot.id}
+      valid_attrs = %{year: 42, make: "some make", tail_number: "some tail_number", initial_hobbs_reading: "120.5", model: "some model"}
 
       assert {:ok, %Airplane{} = airplane} = Airplanes.create_airplane(valid_attrs)
       assert airplane.year == 42
@@ -52,7 +51,6 @@ defmodule FlightLog.AirplanesTest do
       assert airplane.tail_number == "some tail_number"
       assert airplane.initial_hobbs_reading == Decimal.new("120.5")
       assert airplane.model == "some model"
-      assert airplane.pilot_id == pilot.id
     end
 
     test "create_airplane/1 with invalid data returns error changeset" do
@@ -61,8 +59,7 @@ defmodule FlightLog.AirplanesTest do
 
     test "update_airplane/2 with valid data updates the airplane" do
       airplane = airplane_fixture()
-      new_pilot = pilot_fixture()
-      update_attrs = %{year: 43, make: "some updated make", tail_number: "some updated tail_number", initial_hobbs_reading: "456.7", model: "some updated model", pilot_id: new_pilot.id}
+      update_attrs = %{year: 43, make: "some updated make", tail_number: "some updated tail_number", initial_hobbs_reading: "456.7", model: "some updated model"}
 
       assert {:ok, %Airplane{} = airplane} = Airplanes.update_airplane(airplane, update_attrs)
       assert airplane.year == 43
@@ -70,7 +67,6 @@ defmodule FlightLog.AirplanesTest do
       assert airplane.tail_number == "some updated tail_number"
       assert airplane.initial_hobbs_reading == Decimal.new("456.7")
       assert airplane.model == "some updated model"
-      assert airplane.pilot_id == new_pilot.id
     end
 
     test "update_airplane/2 with invalid data returns error changeset" do
@@ -90,24 +86,66 @@ defmodule FlightLog.AirplanesTest do
       assert %Ecto.Changeset{} = Airplanes.change_airplane(airplane)
     end
 
-    test "airplane belongs to pilot" do
-      pilot = pilot_fixture()
-      airplane = airplane_fixture(%{pilot_id: pilot.id})
+    test "airplane can have multiple pilots" do
+      pilot1 = pilot_fixture()
+      pilot2 = pilot_fixture(%{email: "pilot2@example.com"})
+      {:ok, airplane} = Airplanes.create_airplane(%{year: 42, make: "some make", tail_number: "N12345", initial_hobbs_reading: "120.5", model: "some model"})
 
-      airplane_with_pilot = FlightLog.Repo.preload(airplane, :pilot)
-      assert airplane_with_pilot.pilot.id == pilot.id
-      assert airplane_with_pilot.pilot.first_name == pilot.first_name
+      {:ok, airplane} = Airplanes.add_pilot_to_airplane(airplane, pilot1)
+      {:ok, airplane} = Airplanes.add_pilot_to_airplane(airplane, pilot2)
+
+      airplane_with_pilots = FlightLog.Repo.preload(airplane, :pilots)
+      pilot_ids = Enum.map(airplane_with_pilots.pilots, & &1.id)
+
+      assert length(airplane_with_pilots.pilots) == 2
+      assert pilot1.id in pilot_ids
+      assert pilot2.id in pilot_ids
     end
 
-    test "pilot has many airplanes" do
+    test "pilot can have multiple airplanes" do
       pilot = pilot_fixture()
-      airplane1 = airplane_fixture(%{pilot_id: pilot.id, tail_number: "N12345"})
-      airplane2 = airplane_fixture(%{pilot_id: pilot.id, tail_number: "N67890"})
+      airplane1 = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      airplane2 = airplane_fixture(%{pilot: pilot, tail_number: "N67890"})
 
       pilot_with_airplanes = FlightLog.Repo.preload(pilot, :airplanes)
       airplane_ids = Enum.map(pilot_with_airplanes.airplanes, & &1.id)
 
       assert length(pilot_with_airplanes.airplanes) == 2
+      assert airplane1.id in airplane_ids
+      assert airplane2.id in airplane_ids
+    end
+
+    test "add_pilot_to_airplane/2 associates pilot with airplane" do
+      pilot = pilot_fixture()
+      {:ok, airplane} = Airplanes.create_airplane(%{year: 42, make: "some make", tail_number: "N12345", initial_hobbs_reading: "120.5", model: "some model"})
+
+      {:ok, airplane} = Airplanes.add_pilot_to_airplane(airplane, pilot)
+
+      airplane_with_pilots = FlightLog.Repo.preload(airplane, :pilots)
+      assert length(airplane_with_pilots.pilots) == 1
+      assert hd(airplane_with_pilots.pilots).id == pilot.id
+    end
+
+    test "remove_pilot_from_airplane/2 dissociates pilot from airplane" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+
+      {:ok, airplane} = Airplanes.remove_pilot_from_airplane(airplane, pilot)
+
+      airplane_with_pilots = FlightLog.Repo.preload(airplane, :pilots)
+      assert Enum.empty?(airplane_with_pilots.pilots)
+    end
+
+    test "list_airplanes_for_pilot/1 returns all airplanes for a pilot" do
+      pilot = pilot_fixture()
+      airplane1 = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      airplane2 = airplane_fixture(%{pilot: pilot, tail_number: "N67890"})
+      _other_airplane = airplane_fixture(%{tail_number: "N11111"})
+
+      airplanes = Airplanes.list_airplanes_for_pilot(pilot)
+      airplane_ids = Enum.map(airplanes, & &1.id)
+
+      assert length(airplanes) == 2
       assert airplane1.id in airplane_ids
       assert airplane2.id in airplane_ids
     end

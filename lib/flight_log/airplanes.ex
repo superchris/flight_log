@@ -122,4 +122,55 @@ defmodule FlightLog.Airplanes do
   def change_airplane(%Airplane{} = airplane, attrs \\ %{}) do
     Airplane.changeset(airplane, attrs)
   end
+
+  @doc """
+  Associates a pilot with an airplane.
+
+  ## Examples
+
+      iex> add_pilot_to_airplane(airplane, pilot)
+      {:ok, %Airplane{}}
+
+  """
+  def add_pilot_to_airplane(%Airplane{} = airplane, %FlightLog.Accounts.Pilot{} = pilot) do
+    airplane = Repo.preload(airplane, :pilots)
+
+    airplane
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.put_assoc(:pilots, [pilot | airplane.pilots])
+    |> Repo.update()
+  end
+
+  @doc """
+  Removes a pilot from an airplane.
+
+  ## Examples
+
+      iex> remove_pilot_from_airplane(airplane, pilot)
+      {:ok, %Airplane{}}
+
+  """
+  def remove_pilot_from_airplane(%Airplane{} = airplane, %FlightLog.Accounts.Pilot{} = pilot) do
+    airplane = Repo.preload(airplane, :pilots)
+
+    airplane
+    |> Ecto.Changeset.change()
+    |> Ecto.Changeset.put_assoc(:pilots, Enum.reject(airplane.pilots, &(&1.id == pilot.id)))
+    |> Repo.update()
+  end
+
+  @doc """
+  Lists all airplanes for a given pilot.
+
+  ## Examples
+
+      iex> list_airplanes_for_pilot(pilot)
+      [%Airplane{}, ...]
+
+  """
+  def list_airplanes_for_pilot(%FlightLog.Accounts.Pilot{} = pilot) do
+    pilot
+    |> Repo.preload(:airplanes)
+    |> Map.get(:airplanes)
+  end
 end

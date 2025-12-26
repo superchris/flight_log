@@ -68,18 +68,15 @@ defmodule FlightLogWeb.AirplaneLive.FormComponent do
   end
 
   defp save_airplane(socket, :new, airplane_params) do
-    # Add current pilot's ID to airplane params
-    airplane_params_with_pilot = Map.put(airplane_params, "pilot_id", socket.assigns.current_pilot.id)
+    with {:ok, airplane} <- Airplanes.create_airplane(airplane_params),
+         {:ok, airplane} <- Airplanes.add_pilot_to_airplane(airplane, socket.assigns.current_pilot) do
+      notify_parent({:saved, airplane})
 
-    case Airplanes.create_airplane(airplane_params_with_pilot) do
-      {:ok, airplane} ->
-        notify_parent({:saved, airplane})
-
-        {:noreply,
-         socket
-         |> put_flash(:info, "Airplane created successfully")
-         |> push_patch(to: socket.assigns.patch)}
-
+      {:noreply,
+       socket
+       |> put_flash(:info, "Airplane created successfully")
+       |> push_patch(to: socket.assigns.patch)}
+    else
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}
     end

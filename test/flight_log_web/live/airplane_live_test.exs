@@ -64,7 +64,8 @@ defmodule FlightLogWeb.AirplaneLiveTest do
 
       # Verify the airplane was associated with the logged-in pilot
       {:ok, airplane} = FlightLog.Airplanes.get_airplane_by_tail_number(unique_tail_number)
-      assert airplane.pilot_id == pilot.id
+      airplane_with_pilots = FlightLog.Repo.preload(airplane, :pilots)
+      assert Enum.any?(airplane_with_pilots.pilots, &(&1.id == pilot.id))
     end
 
     test "updates airplane in listing", %{conn: conn, airplane: airplane} do

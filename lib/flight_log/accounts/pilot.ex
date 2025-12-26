@@ -12,7 +12,7 @@ defmodule FlightLog.Accounts.Pilot do
     field :last_name, :string
 
     has_many :flights, FlightLog.Flights.Flight
-    has_many :airplanes, FlightLog.Airplanes.Airplane
+    many_to_many :airplanes, FlightLog.Airplanes.Airplane, join_through: FlightLog.Airplanes.PilotAirplane
 
     timestamps(type: :utc_datetime)
   end
