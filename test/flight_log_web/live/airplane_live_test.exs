@@ -3,6 +3,7 @@ defmodule FlightLogWeb.AirplaneLiveTest do
 
   import Phoenix.LiveViewTest
   import FlightLog.AirplanesFixtures
+  import FlightLog.AccountsFixtures
 
   @create_attrs %{year: 42, make: "some make", tail_number: "some tail_number", initial_hobbs_reading: "120.5", model: "some model"}
   @update_attrs %{year: 43, make: "some updated make", tail_number: "some updated tail_number", initial_hobbs_reading: "456.7", model: "some updated model"}
@@ -169,6 +170,64 @@ defmodule FlightLogWeb.AirplaneLiveTest do
 
       refute render(show_live) =~ cost.description
       assert render(show_live) =~ "No costs have been added yet"
+    end
+
+    test "displays pilots section", %{conn: conn, airplane: airplane} do
+      {:ok, _show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
+
+      assert html =~ "Pilots"
+      # The airplane fixture associates a pilot, so we should see them listed
+      assert html =~ "John Doe"
+    end
+
+    test "can add a pilot to airplane", %{conn: conn, airplane: airplane} do
+      other_pilot = pilot_fixture(first_name: "Jane", last_name: "Smith")
+
+      {:ok, show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
+
+      # The airplane already has a pilot from fixture, Jane should be in dropdown
+      assert html =~ "Jane Smith"
+
+      show_live
+      |> form("form", %{pilot_id: other_pilot.id})
+      |> render_change()
+
+      html = render(show_live)
+      assert html =~ "Jane Smith (#{other_pilot.email})"
+    end
+
+    test "can remove a pilot from airplane", %{conn: conn, airplane: airplane} do
+      other_pilot = pilot_fixture(first_name: "Jane", last_name: "Smith")
+      {:ok, airplane} = FlightLog.Airplanes.add_pilot_to_airplane(airplane, other_pilot)
+
+      {:ok, show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
+
+      # Jane should be in the assigned pilots list
+      assert html =~ "Jane Smith (#{other_pilot.email})"
+      # And should have a remove button
+      assert has_element?(show_live, "[data-test-id=remove-pilot-#{other_pilot.id}]")
+
+      # Trigger the remove_pilot event directly
+      show_live
+      |> render_click("remove_pilot", %{"pilot_id" => other_pilot.id})
+
+      # Jane should no longer be in the assigned pilots list
+      refute has_element?(show_live, "[data-test-id=remove-pilot-#{other_pilot.id}]")
+    end
+
+    test "available pilots dropdown excludes already assigned pilots", %{conn: conn, airplane: airplane} do
+      pilot1 = pilot_fixture(first_name: "Pilot", last_name: "One")
+      pilot2 = pilot_fixture(first_name: "Pilot", last_name: "Two")
+      {:ok, airplane} = FlightLog.Airplanes.add_pilot_to_airplane(airplane, pilot1)
+
+      {:ok, _show_live, html} = live(conn, ~p"/airplanes/#{airplane}")
+
+      # pilot1 should be in the assigned list, not dropdown
+      assert html =~ "Pilot One (#{pilot1.email})"
+      # pilot2 should be in the dropdown as an option
+      assert html =~ "<option value=\"#{pilot2.id}\">"
+      # pilot1 should not be in the dropdown
+      refute html =~ "<option value=\"#{pilot1.id}\">"
     end
   end
 end

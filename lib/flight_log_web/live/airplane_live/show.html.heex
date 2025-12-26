@@ -24,6 +24,43 @@
 
 <div class="mt-8">
   <.header>
+    Pilots
+    <:subtitle>Manage pilots who can fly this airplane</:subtitle>
+  </.header>
+
+  <div :if={@airplane.pilots == []} class="text-center py-4 text-gray-500">
+    <p>No pilots assigned to this airplane.</p>
+  </div>
+
+  <div :if={@airplane.pilots != []} class="mt-4">
+    <ul class="divide-y divide-gray-200">
+      <li :for={pilot <- @airplane.pilots} class="flex items-center justify-between py-3">
+        <span>{pilot.first_name} {pilot.last_name} ({pilot.email})</span>
+        <.link
+          phx-click={JS.push("remove_pilot", value: %{pilot_id: pilot.id})}
+          data-confirm="Are you sure you want to remove this pilot?"
+          data-test-id={"remove-pilot-#{pilot.id}"}
+        >
+          <.button class="!bg-red-600 hover:!bg-red-700">Remove</.button>
+        </.link>
+      </li>
+    </ul>
+  </div>
+
+  <div :if={@available_pilots != []} class="mt-4">
+    <form phx-change="add_pilot" class="flex items-center gap-4">
+      <select name="pilot_id" class="block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm">
+        <option value="">Add a pilot...</option>
+        <option :for={pilot <- @available_pilots} value={pilot.id}>
+          {pilot.first_name} {pilot.last_name} ({pilot.email})
+        </option>
+      </select>
+    </form>
+  </div>
+</div>
+
+<div class="mt-8">
+  <.header>
     Costs
     <:subtitle>Manage costs associated with this airplane</:subtitle>
     <:actions>

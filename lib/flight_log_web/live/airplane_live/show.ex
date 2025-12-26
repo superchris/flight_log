@@ -2,8 +2,10 @@ defmodule FlightLogWeb.AirplaneLive.Show do
   use FlightLogWeb, :live_view
 
   alias FlightLog.Airplanes
+  alias FlightLog.Accounts
   alias FlightLog.Costs
   alias FlightLog.Costs.Cost
+  alias FlightLog.Repo
 
   @impl true
   def mount(_params, _session, socket) do
@@ -12,14 +14,17 @@ defmodule FlightLogWeb.AirplaneLive.Show do
 
   @impl true
   def handle_params(%{"id" => id} = params, _, socket) do
-    airplane = Airplanes.get_airplane!(id)
+    airplane = Airplanes.get_airplane!(id) |> Repo.preload(:pilots)
     costs = Costs.list_costs_for_airplane(airplane.id)
+    all_pilots = Accounts.list_pilots()
+    available_pilots = Enum.reject(all_pilots, fn p -> p.id in Enum.map(airplane.pilots, & &1.id) end)
 
     {:noreply,
      socket
      |> assign(:page_title, page_title(socket.assigns.live_action))
      |> assign(:airplane, airplane)
      |> assign(:costs, costs)
+     |> assign(:available_pilots, available_pilots)
      |> apply_action(socket.assigns.live_action, params)}
   end
 
@@ -61,6 +66,38 @@ defmodule FlightLogWeb.AirplaneLive.Show do
 
     costs = Costs.list_costs_for_airplane(socket.assigns.airplane.id)
     {:noreply, assign(socket, costs: costs)}
+  end
+
+  @impl true
+  def handle_event("add_pilot", %{"pilot_id" => ""}, socket) do
+    {:noreply, socket}
+  end
+
+  def handle_event("add_pilot", %{"pilot_id" => pilot_id}, socket) do
+    pilot = Accounts.get_pilot!(pilot_id)
+    {:ok, airplane} = Airplanes.add_pilot_to_airplane(socket.assigns.airplane, pilot)
+    airplane = Repo.preload(airplane, :pilots, force: true)
+    all_pilots = Accounts.list_pilots()
+    available_pilots = Enum.reject(all_pilots, fn p -> p.id in Enum.map(airplane.pilots, & &1.id) end)
+
+    {:noreply,
+     socket
+     |> assign(:airplane, airplane)
+     |> assign(:available_pilots, available_pilots)}
+  end
+
+  @impl true
+  def handle_event("remove_pilot", %{"pilot_id" => pilot_id}, socket) do
+    pilot = Accounts.get_pilot!(pilot_id)
+    {:ok, airplane} = Airplanes.remove_pilot_from_airplane(socket.assigns.airplane, pilot)
+    airplane = Repo.preload(airplane, :pilots, force: true)
+    all_pilots = Accounts.list_pilots()
+    available_pilots = Enum.reject(all_pilots, fn p -> p.id in Enum.map(airplane.pilots, & &1.id) end)
+
+    {:noreply,
+     socket
+     |> assign(:airplane, airplane)
+     |> assign(:available_pilots, available_pilots)}
   end
 
   defp page_title(:show), do: "Show Airplane"
