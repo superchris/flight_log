@@ -17,7 +17,8 @@ defmodule FlightLogWeb.PilotRegistrationLiveTest do
         conn
         |> log_in_pilot(pilot_fixture())
         |> live(~p"/pilots/register")
-        |> follow_redirect(conn, "/")
+        # Pilot with no airplanes redirects to /airplanes
+        |> follow_redirect(conn, "/airplanes")
 
       assert {:ok, _conn} = result
     end
@@ -45,10 +46,11 @@ defmodule FlightLogWeb.PilotRegistrationLiveTest do
       render_submit(form)
       conn = follow_trigger_action(form, conn)
 
-      assert redirected_to(conn) == ~p"/"
+      # New pilot with no airplanes redirects to /airplanes
+      assert redirected_to(conn) == ~p"/airplanes"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, "/")
+      conn = get(conn, "/airplanes")
       response = html_response(conn, 200)
       assert response =~ "Welcome, John"  # The layout shows first_name, not email
       assert response =~ "Settings"

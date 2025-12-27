@@ -171,5 +171,29 @@ defmodule FlightLog.AirplanesTest do
 
       assert {:error, :not_found} = Airplanes.get_airplane_for_pilot(-1, pilot)
     end
+
+    test "get_first_airplane_for_pilot/1 returns {:ok, airplane} when pilot has airplanes" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+
+      assert {:ok, returned_airplane} = Airplanes.get_first_airplane_for_pilot(pilot)
+      assert returned_airplane.id == airplane.id
+    end
+
+    test "get_first_airplane_for_pilot/1 returns {:error, :no_airplanes} when pilot has no airplanes" do
+      pilot = pilot_fixture()
+
+      assert {:error, :no_airplanes} = Airplanes.get_first_airplane_for_pilot(pilot)
+    end
+
+    test "get_first_airplane_for_pilot/1 returns first airplane when pilot has multiple" do
+      pilot = pilot_fixture()
+      airplane1 = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      airplane2 = airplane_fixture(%{pilot: pilot, tail_number: "N67890"})
+
+      assert {:ok, returned_airplane} = Airplanes.get_first_airplane_for_pilot(pilot)
+      # The first airplane returned should be one of the pilot's airplanes
+      assert returned_airplane.id in [airplane1.id, airplane2.id]
+    end
   end
 end

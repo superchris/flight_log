@@ -5,6 +5,7 @@ defmodule FlightLogWeb.PilotAuth do
   import Phoenix.Controller
 
   alias FlightLog.Accounts
+  alias FlightLog.Airplanes
 
   # Make the remember me cookie valid for 60 days.
   # If you want bump or reduce this value, also change
@@ -27,13 +28,12 @@ defmodule FlightLogWeb.PilotAuth do
   """
   def log_in_pilot(conn, pilot, params \\ %{}) do
     token = Accounts.generate_pilot_session_token(pilot)
-    pilot_return_to = get_session(conn, :pilot_return_to)
 
     conn
     |> renew_session()
     |> put_token_in_session(token)
     |> maybe_write_remember_me_cookie(token, params)
-    |> redirect(to: pilot_return_to || signed_in_path(conn))
+    |> redirect(to: signed_in_path_for_pilot(pilot))
   end
 
   defp maybe_write_remember_me_cookie(conn, token, %{"remember_me" => "true"}) do
@@ -93,7 +93,20 @@ defmodule FlightLogWeb.PilotAuth do
   def fetch_current_pilot(conn, _opts) do
     {pilot_token, conn} = ensure_pilot_token(conn)
     pilot = pilot_token && Accounts.get_pilot_by_session_token(pilot_token)
-    assign(conn, :current_pilot, pilot)
+
+    first_airplane =
+      case pilot do
+        nil -> nil
+        pilot ->
+          case Airplanes.get_first_airplane_for_pilot(pilot) do
+            {:ok, airplane} -> airplane
+            {:error, :no_airplanes} -> nil
+          end
+      end
+
+    conn
+    |> assign(:current_pilot, pilot)
+    |> assign(:first_airplane, first_airplane)
   end
 
   defp ensure_pilot_token(conn) do
@@ -175,9 +188,20 @@ defmodule FlightLogWeb.PilotAuth do
   end
 
   defp mount_current_pilot(socket, session) do
-    Phoenix.Component.assign_new(socket, :current_pilot, fn ->
+    socket = Phoenix.Component.assign_new(socket, :current_pilot, fn ->
       if pilot_token = session["pilot_token"] do
         Accounts.get_pilot_by_session_token(pilot_token)
+      end
+    end)
+
+    Phoenix.Component.assign_new(socket, :first_airplane, fn ->
+      case socket.assigns[:current_pilot] do
+        nil -> nil
+        pilot ->
+          case Airplanes.get_first_airplane_for_pilot(pilot) do
+            {:ok, airplane} -> airplane
+            {:error, :no_airplanes} -> nil
+          end
       end
     end)
   end
@@ -225,5 +249,20 @@ defmodule FlightLogWeb.PilotAuth do
 
   defp maybe_store_return_to(conn), do: conn
 
-  defp signed_in_path(_conn), do: ~p"/"
+  defp signed_in_path(%Plug.Conn{} = conn) do
+    signed_in_path_for_pilot(conn.assigns[:current_pilot])
+  end
+
+  defp signed_in_path(%Phoenix.LiveView.Socket{} = socket) do
+    signed_in_path_for_pilot(socket.assigns[:current_pilot])
+  end
+
+  defp signed_in_path_for_pilot(nil), do: ~p"/"
+
+  defp signed_in_path_for_pilot(pilot) do
+    case Airplanes.get_first_airplane_for_pilot(pilot) do
+      {:ok, airplane} -> ~p"/flights/monthly/#{airplane.tail_number}"
+      {:error, :no_airplanes} -> ~p"/airplanes"
+    end
+  end
 end

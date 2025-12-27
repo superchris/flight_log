@@ -19,7 +19,8 @@ defmodule FlightLogWeb.PilotLoginLiveTest do
         conn
         |> log_in_pilot(pilot_fixture())
         |> live(~p"/pilots/log_in")
-        |> follow_redirect(conn, "/")
+        # Pilot with no airplanes redirects to /airplanes
+        |> follow_redirect(conn, "/airplanes")
 
       assert {:ok, _conn} = result
     end
@@ -37,7 +38,8 @@ defmodule FlightLogWeb.PilotLoginLiveTest do
 
       conn = submit_form(form, conn)
 
-      assert redirected_to(conn) == ~p"/"
+      # Pilot with no airplanes redirects to /airplanes
+      assert redirected_to(conn) == ~p"/airplanes"
     end
 
     test "redirects to login page with a flash error if there are no valid credentials", %{

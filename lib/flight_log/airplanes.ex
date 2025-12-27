@@ -175,6 +175,28 @@ defmodule FlightLog.Airplanes do
   end
 
   @doc """
+  Gets the first airplane for a given pilot.
+
+  Returns `{:ok, airplane}` if the pilot has at least one airplane,
+  or `{:error, :no_airplanes}` if the pilot has no airplanes.
+
+  ## Examples
+
+      iex> get_first_airplane_for_pilot(pilot)
+      {:ok, %Airplane{}}
+
+      iex> get_first_airplane_for_pilot(pilot_with_no_airplanes)
+      {:error, :no_airplanes}
+
+  """
+  def get_first_airplane_for_pilot(%FlightLog.Accounts.Pilot{} = pilot) do
+    case list_airplanes_for_pilot(pilot) do
+      [airplane | _] -> {:ok, airplane}
+      [] -> {:error, :no_airplanes}
+    end
+  end
+
+  @doc """
   Gets a single airplane if the pilot is authorized to access it.
 
   Returns `{:ok, airplane}` if the pilot is associated with the airplane,

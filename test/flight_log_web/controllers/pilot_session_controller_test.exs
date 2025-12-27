@@ -15,10 +15,11 @@ defmodule FlightLogWeb.PilotSessionControllerTest do
         })
 
       assert get_session(conn, :pilot_token)
-      assert redirected_to(conn) == ~p"/"
+      # Pilot with no airplanes redirects to /airplanes
+      assert redirected_to(conn) == ~p"/airplanes"
 
       # Now do a logged in request and assert on the menu
-      conn = get(conn, ~p"/")
+      conn = get(conn, ~p"/airplanes")
       response = html_response(conn, 200)
       assert response =~ "Welcome, John"  # The layout shows first_name, not email
       assert response =~ ~p"/pilots/settings"
@@ -36,22 +37,8 @@ defmodule FlightLogWeb.PilotSessionControllerTest do
         })
 
       assert conn.resp_cookies["_flight_log_web_pilot_remember_me"]
-      assert redirected_to(conn) == ~p"/"
-    end
-
-    test "logs the pilot in with return to", %{conn: conn, pilot: pilot} do
-      conn =
-        conn
-        |> init_test_session(pilot_return_to: "/foo/bar")
-        |> post(~p"/pilots/log_in", %{
-          "pilot" => %{
-            "email" => pilot.email,
-            "password" => valid_pilot_password()
-          }
-        })
-
-      assert redirected_to(conn) == "/foo/bar"
-      assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Welcome back!"
+      # Pilot with no airplanes redirects to /airplanes
+      assert redirected_to(conn) == ~p"/airplanes"
     end
 
     test "login following registration", %{conn: conn, pilot: pilot} do
@@ -65,7 +52,8 @@ defmodule FlightLogWeb.PilotSessionControllerTest do
           }
         })
 
-      assert redirected_to(conn) == ~p"/"
+      # Pilot with no airplanes redirects to /airplanes
+      assert redirected_to(conn) == ~p"/airplanes"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Account created successfully"
     end
 
@@ -80,7 +68,8 @@ defmodule FlightLogWeb.PilotSessionControllerTest do
           }
         })
 
-      assert redirected_to(conn) == ~p"/pilots/settings"
+      # Pilot with no airplanes redirects to /airplanes (ignores return_to)
+      assert redirected_to(conn) == ~p"/airplanes"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Password updated successfully"
     end
 
@@ -120,7 +109,8 @@ defmodule FlightLogWeb.PilotSessionControllerTest do
 
       conn = get(conn, ~p"/pilots/log_in/#{token}")
       assert get_session(conn, :pilot_token)
-      assert redirected_to(conn) == ~p"/"
+      # Pilot with no airplanes redirects to /airplanes
+      assert redirected_to(conn) == ~p"/airplanes"
       assert Phoenix.Flash.get(conn.assigns.flash, :info) =~ "Welcome back!"
     end
 

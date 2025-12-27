@@ -5,6 +5,7 @@ defmodule FlightLogWeb.PilotAuthTest do
   alias FlightLog.Accounts
   alias FlightLogWeb.PilotAuth
   import FlightLog.AccountsFixtures
+  import FlightLog.AirplanesFixtures
 
   @remember_me_cookie "_flight_log_web_pilot_remember_me"
 
@@ -18,12 +19,27 @@ defmodule FlightLogWeb.PilotAuthTest do
   end
 
   describe "log_in_pilot/3" do
-    test "stores the pilot token in the session", %{conn: conn, pilot: pilot} do
+    test "stores the pilot token in the session and redirects to airplanes when pilot has none", %{conn: conn, pilot: pilot} do
       conn = PilotAuth.log_in_pilot(conn, pilot)
       assert token = get_session(conn, :pilot_token)
       assert get_session(conn, :live_socket_id) == "pilots_sessions:#{Base.url_encode64(token)}"
-      assert redirected_to(conn) == ~p"/"
+      # Pilot has no airplanes, so redirect to /airplanes
+      assert redirected_to(conn) == ~p"/airplanes"
       assert Accounts.get_pilot_by_session_token(token)
+    end
+
+    test "redirects to monthly view when pilot has an airplane", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      conn = PilotAuth.log_in_pilot(conn, pilot)
+      assert redirected_to(conn) == ~p"/flights/monthly/#{airplane.tail_number}"
+    end
+
+    test "redirects to monthly view when pilot fetched fresh from database has an airplane", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      # Simulate the real login flow by fetching pilot fresh from the database
+      fresh_pilot = Accounts.get_pilot_by_email_and_password(pilot.email, valid_pilot_password())
+      conn = PilotAuth.log_in_pilot(conn, fresh_pilot)
+      assert redirected_to(conn) == ~p"/flights/monthly/#{airplane.tail_number}"
     end
 
     test "clears everything previously stored in the session", %{conn: conn, pilot: pilot} do
@@ -31,10 +47,6 @@ defmodule FlightLogWeb.PilotAuthTest do
       refute get_session(conn, :to_be_removed)
     end
 
-    test "redirects to the configured path", %{conn: conn, pilot: pilot} do
-      conn = conn |> put_session(:pilot_return_to, "/hello") |> PilotAuth.log_in_pilot(pilot)
-      assert redirected_to(conn) == "/hello"
-    end
 
     test "writes a cookie if remember_me is configured", %{conn: conn, pilot: pilot} do
       conn = conn |> fetch_cookies() |> PilotAuth.log_in_pilot(pilot, %{"remember_me" => "true"})
@@ -115,6 +127,24 @@ defmodule FlightLogWeb.PilotAuthTest do
       refute get_session(conn, :pilot_token)
       refute conn.assigns.current_pilot
     end
+
+    test "assigns first_airplane when pilot has airplanes", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      pilot_token = Accounts.generate_pilot_session_token(pilot)
+      conn = conn |> put_session(:pilot_token, pilot_token) |> PilotAuth.fetch_current_pilot([])
+      assert conn.assigns.first_airplane.id == airplane.id
+    end
+
+    test "assigns nil to first_airplane when pilot has no airplanes", %{conn: conn, pilot: pilot} do
+      pilot_token = Accounts.generate_pilot_session_token(pilot)
+      conn = conn |> put_session(:pilot_token, pilot_token) |> PilotAuth.fetch_current_pilot([])
+      assert conn.assigns.first_airplane == nil
+    end
+
+    test "assigns nil to first_airplane when not authenticated", %{conn: conn} do
+      conn = PilotAuth.fetch_current_pilot(conn, [])
+      assert conn.assigns.first_airplane == nil
+    end
   end
 
   describe "on_mount :mount_current_pilot" do
@@ -145,6 +175,27 @@ defmodule FlightLogWeb.PilotAuthTest do
         PilotAuth.on_mount(:mount_current_pilot, %{}, session, %LiveView.Socket{})
 
       assert updated_socket.assigns.current_pilot == nil
+    end
+
+    test "assigns first_airplane when pilot has airplanes", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      pilot_token = Accounts.generate_pilot_session_token(pilot)
+      session = conn |> put_session(:pilot_token, pilot_token) |> get_session()
+
+      {:cont, updated_socket} =
+        PilotAuth.on_mount(:mount_current_pilot, %{}, session, %LiveView.Socket{})
+
+      assert updated_socket.assigns.first_airplane.id == airplane.id
+    end
+
+    test "assigns nil to first_airplane when pilot has no airplanes", %{conn: conn, pilot: pilot} do
+      pilot_token = Accounts.generate_pilot_session_token(pilot)
+      session = conn |> put_session(:pilot_token, pilot_token) |> get_session()
+
+      {:cont, updated_socket} =
+        PilotAuth.on_mount(:mount_current_pilot, %{}, session, %LiveView.Socket{})
+
+      assert updated_socket.assigns.first_airplane == nil
     end
   end
 
@@ -213,10 +264,17 @@ defmodule FlightLogWeb.PilotAuthTest do
   end
 
   describe "redirect_if_pilot_is_authenticated/2" do
-    test "redirects if pilot is authenticated", %{conn: conn, pilot: pilot} do
+    test "redirects to airplanes if pilot is authenticated but has no airplanes", %{conn: conn, pilot: pilot} do
       conn = conn |> assign(:current_pilot, pilot) |> PilotAuth.redirect_if_pilot_is_authenticated([])
       assert conn.halted
-      assert redirected_to(conn) == ~p"/"
+      assert redirected_to(conn) == ~p"/airplanes"
+    end
+
+    test "redirects to monthly view if pilot is authenticated and has an airplane", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{pilot: pilot, tail_number: "N12345"})
+      conn = conn |> assign(:current_pilot, pilot) |> PilotAuth.redirect_if_pilot_is_authenticated([])
+      assert conn.halted
+      assert redirected_to(conn) == ~p"/flights/monthly/#{airplane.tail_number}"
     end
 
     test "does not redirect if pilot is not authenticated", %{conn: conn} do

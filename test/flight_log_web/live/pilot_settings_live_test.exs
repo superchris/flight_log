@@ -108,7 +108,8 @@ defmodule FlightLogWeb.PilotSettingsLiveTest do
 
       new_password_conn = follow_trigger_action(form, conn)
 
-      assert redirected_to(new_password_conn) == ~p"/pilots/settings"
+      # Pilot with no airplanes redirects to /airplanes (ignores return_to)
+      assert redirected_to(new_password_conn) == ~p"/airplanes"
 
       assert get_session(new_password_conn, :pilot_token) != get_session(conn, :pilot_token)
 

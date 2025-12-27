@@ -17,14 +17,13 @@
         <!-- Navigation Links -->
         <div class="hidden md:block">
           <div class="ml-10 flex items-baseline space-x-4">
-            <.link navigate={~p"/"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Dashboard
-            </.link>
+            <%= if assigns[:first_airplane] do %>
+              <.link navigate={~p"/flights/monthly/#{@first_airplane.tail_number}"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
+                Monthly View
+              </.link>
+            <% end %>
             <.link navigate={~p"/airplanes"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
               Airplanes
-            </.link>
-            <.link navigate={~p"/flights"} class="text-gray-600 hover:text-blue-600 px-3 py-2 rounded-md text-sm font-medium transition-colors">
-              Flights
             </.link>
           </div>
         </div>
@@ -72,14 +71,13 @@
     <!-- Mobile menu -->
     <div class="md:hidden" id="mobile-menu">
       <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3 bg-white border-t border-gray-200">
-        <.link navigate={~p"/"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-          Dashboard
-        </.link>
+        <%= if assigns[:first_airplane] do %>
+          <.link navigate={~p"/flights/monthly/#{@first_airplane.tail_number}"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
+            Monthly View
+          </.link>
+        <% end %>
         <.link navigate={~p"/airplanes"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
           Airplanes
-        </.link>
-        <.link navigate={~p"/flights"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">
-          Flights
         </.link>
         <%= if assigns[:current_pilot] do %>
           <.link navigate={~p"/pilots/settings"} class="text-gray-600 hover:text-blue-600 block px-3 py-2 rounded-md text-base font-medium">

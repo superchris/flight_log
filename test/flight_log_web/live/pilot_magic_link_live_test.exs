@@ -21,7 +21,8 @@ defmodule FlightLogWeb.PilotMagicLinkLiveTest do
         conn
         |> log_in_pilot(pilot_fixture())
         |> live(~p"/pilots/magic_link")
-        |> follow_redirect(conn, ~p"/")
+        # Pilot with no airplanes redirects to /airplanes
+        |> follow_redirect(conn, ~p"/airplanes")
 
       assert {:ok, _conn} = result
     end
