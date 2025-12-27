@@ -54,7 +54,7 @@ defmodule FlightLogWeb.FlightLive.LogFlight do
         </:actions>
       </.simple_form>
 
-      <.back navigate={~p"/flights"}>Back to flights</.back>
+      <.back navigate={~p"/flights/monthly/#{@tail_number}"}>Back to monthly view</.back>
     </div>
     """
   end
@@ -84,7 +84,7 @@ defmodule FlightLogWeb.FlightLive.LogFlight do
         {:noreply,
          socket
          |> put_flash(:info, "Flight logged successfully!")
-         |> redirect(to: ~p"/flights")}
+         |> redirect(to: ~p"/flights/monthly/#{socket.assigns.tail_number}")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, form: to_form(changeset))}

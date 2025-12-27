@@ -38,7 +38,7 @@ defmodule FlightLogWeb.FlightLive.LogFlightTest do
              |> form("#flight-form", flight: @create_attrs)
              |> render_submit()
 
-      assert_redirect(lv, ~p"/flights")
+      assert_redirect(lv, ~p"/flights/monthly/#{airplane.tail_number}")
 
       # Verify the flight was created
       flight = FlightLog.Flights.list_flights() |> List.last()
@@ -90,14 +90,14 @@ defmodule FlightLogWeb.FlightLive.LogFlightTest do
       assert flight.airplane_id == airplane.id
     end
 
-    test "redirects to flights index after successful creation", %{conn: conn, airplane: airplane} do
+    test "redirects to monthly view after successful creation", %{conn: conn, airplane: airplane} do
       {:ok, lv, _html} = live(conn, ~p"/flights/#{airplane.tail_number}/new")
 
       lv
       |> form("#flight-form", flight: @create_attrs)
       |> render_submit()
 
-      assert_redirect(lv, ~p"/flights")
+      assert_redirect(lv, ~p"/flights/monthly/#{airplane.tail_number}")
     end
 
     test "shows flash message after successful creation", %{conn: conn, airplane: airplane} do
@@ -107,7 +107,7 @@ defmodule FlightLogWeb.FlightLive.LogFlightTest do
       |> form("#flight-form", flight: @create_attrs)
       |> render_submit()
 
-      flash = assert_redirect(lv, ~p"/flights")
+      flash = assert_redirect(lv, ~p"/flights/monthly/#{airplane.tail_number}")
       assert flash["info"] == "Flight logged successfully!"
     end
 
@@ -119,7 +119,7 @@ defmodule FlightLogWeb.FlightLive.LogFlightTest do
              |> form("#flight-form", flight: attrs_without_notes)
              |> render_submit()
 
-      assert_redirect(lv, ~p"/flights")
+      assert_redirect(lv, ~p"/flights/monthly/#{airplane.tail_number}")
 
       # Verify the flight was created without notes
       flight = FlightLog.Flights.list_flights() |> List.last()
