@@ -4,6 +4,20 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#FD4F00" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="FlightLog" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="FlightLog" />
+    <meta name="description" content="Track and log your flights" />
+    <!-- PWA Manifest -->
+    <link rel="manifest" href={~p"/manifest.json"} />
+    <!-- Apple Touch Icons -->
+    <link rel="apple-touch-icon" sizes="180x180" href={~p"/images/icon-192x192.png"} />
+    <link rel="icon" type="image/png" sizes="32x32" href={~p"/images/icon-96x96.png"} />
+    <link rel="icon" type="image/png" sizes="16x16" href={~p"/images/icon-72x72.png"} />
     <.live_title default="FlightLog" suffix=" · Phoenix Framework">
       {assigns[:page_title]}
     </.live_title>
