@@ -542,5 +542,86 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
 
       refute html =~ "Pilot Summary"
     end
+
+    test "renders log flight modal with form", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N88888", initial_hobbs_reading: Decimal.new("100.0")})
+      FlightLog.Airplanes.add_pilot_to_airplane(airplane, pilot)
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # The modal form is rendered in the page (hidden by default)
+      assert html =~ "Log Flight - #{airplane.tail_number}"
+      assert html =~ "Flying #{airplane.make} #{airplane.model}"
+      assert html =~ "Pilot"
+      assert html =~ "Hobbs reading"
+      assert html =~ "Flight date"
+      assert html =~ "id=\"flight-form\""
+    end
+
+    test "saves flight from modal and refreshes list", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N89898", initial_hobbs_reading: Decimal.new("100.0")})
+      FlightLog.Airplanes.add_pilot_to_airplane(airplane, pilot)
+
+      {:ok, index_live, _html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      {:ok, _new_live, html} =
+        index_live
+        |> form("#flight-form", flight: %{
+          pilot_id: pilot.id,
+          hobbs_reading: "105.5",
+          flight_date: "2024-01-15"
+        })
+        |> render_submit()
+        |> follow_redirect(conn)
+
+      # After redirect, check the flash and the new flight
+      assert html =~ "Flight logged successfully!"
+      assert html =~ "105.5"
+    end
+
+    test "validates flight form in modal", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N90909", initial_hobbs_reading: Decimal.new("100.0")})
+      FlightLog.Airplanes.add_pilot_to_airplane(airplane, pilot)
+
+      {:ok, index_live, _html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      html =
+        index_live
+        |> form("#flight-form", flight: %{hobbs_reading: ""})
+        |> render_change()
+
+      assert html =~ "can&#39;t be blank"
+    end
+
+    test "pilot select defaults to logged in pilot", %{conn: conn, pilot: pilot} do
+      airplane = airplane_fixture(%{tail_number: "N91919", initial_hobbs_reading: Decimal.new("100.0")})
+      FlightLog.Airplanes.add_pilot_to_airplane(airplane, pilot)
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # The logged in pilot should be selected by default - check for the option element
+      # Phoenix LiveView outputs: selected="selected"
+      assert html =~ ~r/<option selected="selected" value="#{pilot.id}">/
+    end
+
+    test "pilot select shows all pilots associated with airplane", %{conn: conn, pilot: pilot} do
+      import FlightLog.AccountsFixtures
+
+      airplane = airplane_fixture(%{tail_number: "N92929", initial_hobbs_reading: Decimal.new("100.0")})
+      other_pilot = pilot_fixture(%{first_name: "Other", last_name: "Pilot"})
+      FlightLog.Airplanes.add_pilot_to_airplane(airplane, pilot)
+      FlightLog.Airplanes.add_pilot_to_airplane(airplane, other_pilot)
+
+      {:ok, _index_live, html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
+
+      # Both pilots should appear in the select options
+      assert html =~ "#{pilot.first_name} #{pilot.last_name}"
+      assert html =~ "#{other_pilot.first_name} #{other_pilot.last_name}"
+    end
   end
 end

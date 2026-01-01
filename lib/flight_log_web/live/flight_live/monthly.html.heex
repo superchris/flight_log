@@ -5,9 +5,7 @@
       {@airplane.make} {@airplane.model} - {format_month(@current_date)}
     </:subtitle>
     <:actions>
-      <.link navigate={~p"/flights/#{@airplane.tail_number}/new"}>
-        <.button>Log New Flight</.button>
-      </.link>
+      <.button phx-click={show_modal("log-flight-modal")}>Log New Flight</.button>
     </:actions>
   </.header>
 
@@ -35,9 +33,7 @@
         No flights found for {format_month(@current_date)}.
       </p>
       <div class="mt-6">
-        <.link navigate={~p"/flights/#{@airplane.tail_number}/new"}>
-          <.button>Log New Flight</.button>
-        </.link>
+        <.button phx-click={show_modal("log-flight-modal")}>Log New Flight</.button>
       </div>
     </div>
   <% else %>
@@ -232,4 +228,36 @@
   <div class="mt-8">
     <.back navigate={~p"/airplanes/#{@airplane.id}"}>Back to airplane</.back>
   </div>
-</div> 
+</div>
+
+<.modal id="log-flight-modal">
+  <.header>
+    Log Flight - {@airplane.tail_number}
+    <:subtitle>
+      Flying {@airplane.make} {@airplane.model} ({@airplane.tail_number})
+    </:subtitle>
+  </.header>
+
+  <.simple_form
+    for={@form}
+    id="flight-form"
+    phx-submit="save"
+    phx-change="validate"
+  >
+    <.input
+      field={@form[:pilot_id]}
+      type="select"
+      label="Pilot"
+      options={@pilot_options}
+    />
+    <input type="hidden" name="flight[airplane_id]" value={@airplane.id} />
+
+    <.input field={@form[:hobbs_reading]} type="number" label="Hobbs reading" step="any" required />
+    <.input field={@form[:flight_date]} type="date" label="Flight date" required />
+    <.input field={@form[:notes]} type="textarea" label="Notes" placeholder="Optional flight notes" />
+
+    <:actions>
+      <.button phx-disable-with="Saving...">Save Flight</.button>
+    </:actions>
+  </.simple_form>
+</.modal> 
