@@ -342,10 +342,11 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
 
       html = render(index_live)
 
-      # February costs: 600 (monthly) + 300 (hourly: 100*3) + 800 (one-time) = 1700
+      # February flight is 1.0 hours (53.0 - 52.0 from January flight)
+      # February costs: 600 (monthly) + 100 (hourly: 100*1) + 800 (one-time) = 1500
       assert html =~ "Monthly Costs for February 2024"
       assert html =~ "February Maintenance"
-      assert html =~ "$1700.00"
+      assert html =~ "$1500.00"
       refute html =~ "January Maintenance"
     end
 

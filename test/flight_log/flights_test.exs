@@ -373,5 +373,75 @@ defmodule FlightLog.FlightsTest do
       assert result.flight_hours == Decimal.new("3.7")  # 1003.7 - 1000.0
       assert result.id == flight.id
     end
+
+    test "calculates correct hours when viewing flights filtered by month (month boundary bug)" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("100.0")})
+
+      # January flight: hobbs 110.0 -> 10 hours
+      _jan_flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("110.0")
+      })
+
+      # February flight: hobbs 115.0 -> should be 5 hours (115 - 110)
+      feb_flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-02-10],
+        hobbs_reading: Decimal.new("115.0")
+      })
+
+      # Fetch only February flights (simulating monthly view)
+      february_flights = Flights.list_flights_for_airplane_month(airplane.id, ~D[2024-02-15])
+
+      assert length(february_flights) == 1
+      assert hd(february_flights).id == feb_flight.id
+
+      # Get the previous hobbs reading (from January flight)
+      start_of_february = Date.beginning_of_month(~D[2024-02-15])
+      previous_hobbs = Flights.get_previous_hobbs_reading(airplane.id, start_of_february)
+
+      # Calculate hours for February flights with correct previous hobbs
+      [result] = Flights.add_flight_hours(february_flights, previous_hobbs)
+
+      # The February flight should show 5.0 hours (115.0 - 110.0)
+      assert result.flight_hours == Decimal.new("5.0")
+    end
+
+    test "get_previous_hobbs_reading returns nil when no previous flights exist" do
+      airplane = airplane_fixture()
+      assert Flights.get_previous_hobbs_reading(airplane.id, ~D[2024-01-01]) == nil
+    end
+
+    test "get_previous_hobbs_reading returns the most recent hobbs reading before the given date" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture()
+
+      # Create flights in different months
+      _flight1 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-10],
+        hobbs_reading: Decimal.new("100.0")
+      })
+
+      _flight2 = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-25],
+        hobbs_reading: Decimal.new("110.0")
+      })
+
+      # Get previous hobbs reading before February - should be 110.0 (the January 25th flight)
+      previous_hobbs = Flights.get_previous_hobbs_reading(airplane.id, ~D[2024-02-01])
+      assert previous_hobbs == Decimal.new("110.0")
+
+      # Get previous hobbs reading before January 20 - should be 100.0 (the January 10th flight)
+      previous_hobbs_mid_jan = Flights.get_previous_hobbs_reading(airplane.id, ~D[2024-01-20])
+      assert previous_hobbs_mid_jan == Decimal.new("100.0")
+    end
   end
 end

@@ -12,12 +12,15 @@ defmodule FlightLogWeb.FlightLive.Monthly do
     case Airplanes.get_airplane_by_tail_number(tail_number) do
       {:ok, airplane} ->
         current_date = parse_date_params(params)
+        start_of_month = Date.beginning_of_month(current_date)
+
+        previous_hobbs = Flights.get_previous_hobbs_reading(airplane.id, start_of_month)
 
         flights = Flights.list_flights_for_airplane_month(
           airplane.id,
           current_date
         )
-        |> Flights.add_flight_hours()
+        |> Flights.add_flight_hours(previous_hobbs)
 
         total_flight_hours = calculate_total_flight_hours(flights)
         costs = Costs.get_monthly_costs_for_airplane(airplane.id, current_date, total_flight_hours)
@@ -42,12 +45,15 @@ defmodule FlightLogWeb.FlightLive.Monthly do
   @impl true
   def handle_params(params, _url, socket) do
     current_date = parse_date_params(params)
+    start_of_month = Date.beginning_of_month(current_date)
+
+    previous_hobbs = Flights.get_previous_hobbs_reading(socket.assigns.airplane.id, start_of_month)
 
     flights = Flights.list_flights_for_airplane_month(
       socket.assigns.airplane.id,
       current_date
     )
-    |> Flights.add_flight_hours()
+    |> Flights.add_flight_hours(previous_hobbs)
 
     total_flight_hours = calculate_total_flight_hours(flights)
     costs = Costs.get_monthly_costs_for_airplane(socket.assigns.airplane.id, current_date, total_flight_hours)

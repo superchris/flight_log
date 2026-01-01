@@ -50,6 +50,21 @@ defmodule FlightLog.Flights do
   end
 
   @doc """
+  Gets the hobbs reading from the most recent flight before the given date for an airplane.
+  Returns nil if no previous flight exists.
+  """
+  def get_previous_hobbs_reading(airplane_id, before_date) do
+    from(f in Flight,
+      where: f.airplane_id == ^airplane_id,
+      where: f.flight_date < ^before_date,
+      order_by: [desc: f.flight_date, desc: f.inserted_at],
+      limit: 1,
+      select: f.hobbs_reading
+    )
+    |> Repo.one()
+  end
+
+  @doc """
   Returns the list of flights for a specific airplane and month (all pilots).
 
   ## Examples
@@ -157,18 +172,24 @@ defmodule FlightLog.Flights do
   Adds flight hours to each flight in the list.
 
   Flight hours are calculated as:
-  - First flight (chronologically): hobbs_reading - airplane.initial_hobbs_reading
+  - First flight (chronologically): hobbs_reading - previous_hobbs (or airplane.initial_hobbs_reading if nil)
   - Subsequent flights: current_hobbs_reading - previous_hobbs_reading
+
+  The optional `previous_hobbs` parameter should be the hobbs reading from the most recent
+  flight before the filtered list. This is important for monthly views where the first
+  flight of the month needs to calculate hours based on the last flight of the previous month.
 
   Returns flights in their original order with :flight_hours field added.
   Expects flights to have airplane preloaded.
   """
-  def add_flight_hours([]), do: []
+  def add_flight_hours(flights, previous_hobbs \\ nil)
 
-  def add_flight_hours(flights) when is_list(flights) do
+  def add_flight_hours([], _previous_hobbs), do: []
+
+  def add_flight_hours(flights, previous_hobbs) when is_list(flights) do
     flights
     |> sort_chronologically()
-    |> calculate_flight_hours()
+    |> calculate_flight_hours(previous_hobbs)
     |> restore_original_order(flights)
   end
 
@@ -176,14 +197,14 @@ defmodule FlightLog.Flights do
     Enum.sort_by(flights, &{&1.flight_date, &1.inserted_at}, :asc)
   end
 
-  defp calculate_flight_hours([]), do: []
+  defp calculate_flight_hours([], _previous_hobbs), do: []
 
-  defp calculate_flight_hours([first | rest]) do
-    # Calculate first flight hours using airplane's initial hobbs reading
-    initial_hobbs_reading = first.airplane.initial_hobbs_reading
+  defp calculate_flight_hours([first | rest], previous_hobbs) do
+    # Use previous_hobbs if provided, otherwise fall back to airplane's initial hobbs reading
+    starting_hobbs = previous_hobbs || first.airplane.initial_hobbs_reading
 
     first_with_hours =
-      Map.put(first, :flight_hours, Decimal.sub(first.hobbs_reading, initial_hobbs_reading))
+      Map.put(first, :flight_hours, Decimal.sub(first.hobbs_reading, starting_hobbs))
 
     # Calculate remaining flights
     remaining_with_hours = Enum.scan(rest, first, &add_hours_to_flight(&1, &2))
