@@ -69,7 +69,9 @@ defmodule FlightLogWeb.FlightLive.Monthly do
 
     @impl true
   def handle_event("prev_month", _params, socket) do
-    new_date = Date.add(socket.assigns.current_date, -Date.days_in_month(socket.assigns.current_date))
+    new_date = socket.assigns.current_date
+               |> Date.beginning_of_month()
+               |> Date.add(-1)
 
     {:noreply,
      socket

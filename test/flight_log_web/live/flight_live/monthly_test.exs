@@ -82,6 +82,22 @@ defmodule FlightLogWeb.FlightLive.MonthlyTest do
       assert_patch(index_live, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=1")
     end
 
+    test "previous month from late in the month navigates correctly", %{conn: conn} do
+      # Regression test: from December 25, previous month should go to November, not October
+      airplane = airplane_fixture(%{tail_number: "N22222"})
+
+      {:ok, index_live, _html} =
+        live(conn, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=12")
+
+      # Test previous month navigation from December
+      index_live
+      |> element("button", "Previous Month")
+      |> render_click()
+
+      # Should go to November, not October
+      assert_patch(index_live, ~p"/flights/monthly/#{airplane.tail_number}?year=2024&month=11")
+    end
+
     test "redirects when airplane not found", %{conn: conn} do
       assert {:error, {:redirect, %{to: "/airplanes"}}} =
         live(conn, ~p"/flights/monthly/INVALID")
