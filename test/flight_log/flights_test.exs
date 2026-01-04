@@ -416,6 +416,33 @@ defmodule FlightLog.FlightsTest do
       assert Flights.get_previous_hobbs_reading(airplane.id, ~D[2024-01-01]) == nil
     end
 
+    test "uses initial_hobbs_reading when previous_hobbs is nil (no previous flights)" do
+      pilot = pilot_fixture()
+      airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("500.0")})
+
+      # First ever flight for this airplane
+      flight = flight_fixture(%{
+        pilot_id: pilot.id,
+        airplane_id: airplane.id,
+        flight_date: ~D[2024-01-15],
+        hobbs_reading: Decimal.new("503.5")
+      })
+
+      # Simulate monthly view: get flights for the month
+      january_flights = Flights.list_flights_for_airplane_month(airplane.id, ~D[2024-01-15])
+
+      # Get previous hobbs (should be nil since no flights before January)
+      start_of_january = Date.beginning_of_month(~D[2024-01-15])
+      previous_hobbs = Flights.get_previous_hobbs_reading(airplane.id, start_of_january)
+      assert previous_hobbs == nil
+
+      # Calculate hours - should use initial_hobbs_reading (500.0) since previous_hobbs is nil
+      [result] = Flights.add_flight_hours(january_flights, previous_hobbs)
+
+      # Flight hours should be 3.5 (503.5 - 500.0)
+      assert result.flight_hours == Decimal.new("3.5")
+    end
+
     test "get_previous_hobbs_reading returns the most recent hobbs reading before the given date" do
       pilot = pilot_fixture()
       airplane = airplane_fixture()

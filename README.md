@@ -7,6 +7,21 @@ To start your Phoenix server:
 
 Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
 
+## Creating a Pilot from IEx
+
+To create a new pilot from the IEx console:
+
+```elixir
+FlightLog.Accounts.register_pilot(%{
+  email: "pilot@example.com",
+  password: "your_password_here",
+  first_name: "John",
+  last_name: "Doe"
+})
+```
+
+Note: The password must be at least 12 characters long.
+
 Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
 
 ## Learn more
