@@ -1,0 +1,38 @@
+name: flight-log-devcontainer
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    init: true
+    command: sleep infinity
+    environment:
+      DATABASE_HOST: db
+      DATABASE_NAME: flight_log_dev
+      DATABASE_PASSWORD: postgres
+      DATABASE_USER: postgres
+      DEVCONTAINER: "true"
+    volumes:
+      - ..:/workspaces/flight_log:cached
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: flight_log_dev
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flight_log_dev"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+
+volumes:
+  postgres-data:

@@ -1,0 +1,29 @@
+{
+  "name": "FlightLog",
+  "dockerComposeFile": "compose.yaml",
+  "service": "app",
+  "workspaceFolder": "/workspaces/flight_log",
+  "remoteUser": "vscode",
+  "shutdownAction": "stopCompose",
+  "forwardPorts": [4000],
+  "portsAttributes": {
+    "4000": {
+      "label": "Phoenix",
+      "onAutoForward": "notify"
+    }
+  },
+  "postCreateCommand": "mix setup",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "JakeBecker.elixir-ls"
+      ],
+      "settings": {
+        "files.watcherExclude": {
+          "**/_build/**": true,
+          "**/deps/**": true
+        }
+      }
+    }
+  }
+}

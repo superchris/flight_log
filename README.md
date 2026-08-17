@@ -1,5 +1,20 @@
 # FlightLog
 
+## Dev container
+
+With Docker and a dev-container compatible editor installed, open this repository and choose
+**Reopen in Container**. The container installs the Mix dependencies, creates and migrates the
+PostgreSQL database, and builds the assets automatically.
+
+Start the application from the container terminal:
+
+```sh
+mix phx.server
+```
+
+The app is available at [`localhost:4000`](http://localhost:4000). PostgreSQL data is kept in a
+named Docker volume, so it survives container rebuilds.
+
 To start your Phoenix server:
 
   * Run `mix setup` to install and setup dependencies
