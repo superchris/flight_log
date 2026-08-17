@@ -421,7 +421,7 @@ defmodule FlightLog.FlightsTest do
       airplane = airplane_fixture(%{initial_hobbs_reading: Decimal.new("500.0")})
 
       # First ever flight for this airplane
-      flight = flight_fixture(%{
+      flight_fixture(%{
         pilot_id: pilot.id,
         airplane_id: airplane.id,
         flight_date: ~D[2024-01-15],
