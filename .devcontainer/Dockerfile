@@ -27,11 +27,13 @@ RUN apt-get update \
 
 ENV MIX_HOME=/home/${USERNAME}/.mix \
     HEX_HOME=/home/${USERNAME}/.hex \
-    PATH=/home/${USERNAME}/.opencode/bin:${PATH}
+    PATH=/home/${USERNAME}/.local/bin:/home/${USERNAME}/.opencode/bin:${PATH}
 
 USER ${USERNAME}
 
-RUN curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path \
+RUN curl -fsSL https://chatgpt.com/codex/install.sh | sh \
+    && codex --version \
+    && curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path \
     && opencode --version \
     && mix local.hex --force \
     && mix local.rebar --force
