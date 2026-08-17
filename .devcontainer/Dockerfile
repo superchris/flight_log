@@ -26,11 +26,14 @@ RUN apt-get update \
     && rm -rf /var/lib/apt/lists/*
 
 ENV MIX_HOME=/home/${USERNAME}/.mix \
-    HEX_HOME=/home/${USERNAME}/.hex
+    HEX_HOME=/home/${USERNAME}/.hex \
+    PATH=/home/${USERNAME}/.opencode/bin:${PATH}
 
 USER ${USERNAME}
 
-RUN mix local.hex --force \
+RUN curl -fsSL https://opencode.ai/install | bash -s -- --no-modify-path \
+    && opencode --version \
+    && mix local.hex --force \
     && mix local.rebar --force
 
 WORKDIR /workspaces/flight_log
