@@ -2,12 +2,46 @@
 
 name: Fly Deploy
 on:
+  pull_request:
+    branches:
+      - main
   push:
     branches:
       - main
 jobs:
+  test:
+    name: Run tests
+    runs-on: ubuntu-22.04
+    env:
+      MIX_ENV: test
+    services:
+      postgres:
+        image: postgres:16-bookworm
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: erlef/setup-beam@v1
+        with:
+          elixir-version: '1.16.2'
+          otp-version: '26.2.1'
+      - name: Install dependencies
+        run: mix deps.get
+      - name: Run tests
+        run: mix test
+
   deploy:
     name: Deploy app
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     concurrency: deploy-group    # optional: ensure only one action runs at a time
     steps:
