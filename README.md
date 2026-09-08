@@ -3,8 +3,14 @@
 ## Dev container
 
 With Docker and a dev-container compatible editor installed, open this repository and choose
-**Reopen in Container**. The container installs the Mix dependencies, creates and migrates the
-PostgreSQL database, and builds the assets automatically.
+**Reopen in Container**. The container uses mise to install Erlang, Elixir, and Node.js from
+`mise.toml`, then installs the Mix dependencies, creates and migrates the PostgreSQL database,
+and builds the assets automatically. The first setup can take a while if Erlang needs to be
+compiled from source.
+
+The tools are available in container terminals and editor tasks. To change versions, edit
+`mise.toml` and run `mise install`. After changing the dev-container configuration, choose
+**Dev Containers: Rebuild Container** to apply it.
 
 Start the application from the container terminal:
 
