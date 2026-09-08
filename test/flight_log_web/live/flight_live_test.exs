@@ -33,6 +33,25 @@ defmodule FlightLogWeb.FlightLiveTest do
       assert html =~ "Listing Flights"
     end
 
+    test "defaults new flight date to today and saves it without editing", %{
+      conn: conn,
+      create_attrs: create_attrs
+    } do
+      today = Date.utc_today()
+      {:ok, index_live, _html} = live(conn, ~p"/flights")
+      index_live |> element("a", "New Flight") |> render_click()
+
+      assert has_element?(index_live, ~s(input[name="flight[flight_date]"][value="#{today}"]))
+
+      index_live
+      |> form("#flight-form", flight: Map.delete(create_attrs, :flight_date))
+      |> render_submit()
+
+      assert_patch(index_live, ~p"/flights")
+      flight = Enum.find(FlightLog.Flights.list_flights(), &(&1.pilot_id == create_attrs.pilot_id))
+      assert flight.flight_date == today
+    end
+
     test "saves new flight", %{conn: conn, create_attrs: create_attrs, invalid_attrs: invalid_attrs} do
       {:ok, index_live, _html} = live(conn, ~p"/flights")
 

@@ -23,7 +23,7 @@ defmodule FlightLogWeb.FlightLive.Index do
   defp apply_action(socket, :new, _params) do
     socket
     |> assign(:page_title, "New Flight")
-    |> assign(:flight, %Flight{})
+    |> assign(:flight, %Flight{flight_date: Date.utc_today()})
   end
 
   defp apply_action(socket, :index, _params) do

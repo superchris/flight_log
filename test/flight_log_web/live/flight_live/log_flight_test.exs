@@ -25,6 +25,21 @@ defmodule FlightLogWeb.FlightLive.LogFlightTest do
       assert html =~ "Flying #{airplane.make} #{airplane.model}"
     end
 
+    test "defaults flight date to today and saves it without editing", %{conn: conn, airplane: airplane} do
+      today = Date.utc_today()
+      {:ok, lv, _html} = live(conn, ~p"/flights/#{airplane.tail_number}/new")
+
+      assert has_element?(lv, ~s(input[name="flight[flight_date]"][value="#{today}"]))
+
+      lv
+      |> form("#flight-form", flight: %{hobbs_reading: "120.5"})
+      |> render_submit()
+
+      assert_redirect(lv, ~p"/flights/monthly/#{airplane.tail_number}")
+      assert [flight] = FlightLog.Flights.list_flights()
+      assert flight.flight_date == today
+    end
+
     test "shows error for non-existent tail number", %{conn: conn} do
       {:error, {:redirect, %{to: "/flights", flash: flash}}} = live(conn, ~p"/flights/NONEXISTENT/new")
 

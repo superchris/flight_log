@@ -14,7 +14,11 @@ defmodule FlightLogWeb.FlightLive.LogFlight do
          |> assign(:airplane, airplane)
          |> assign(:tail_number, tail_number)
          |> assign(:page_title, "Log Flight - #{airplane.tail_number}")
-         |> assign(:flight, %Flight{airplane_id: airplane.id, pilot_id: socket.assigns.current_pilot.id})
+         |> assign(:flight, %Flight{
+           airplane_id: airplane.id,
+           pilot_id: socket.assigns.current_pilot.id,
+           flight_date: Date.utc_today()
+         })
          |> assign_form()}
 
       {:error, :not_found} ->
